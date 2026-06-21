@@ -31,10 +31,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
@@ -85,215 +87,259 @@ class GamesLauncherScreen : Screen {
             viewModel.onEvent(GamesLauncherUiEvent.PermissionCheckRequested)
         }
 
-        Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    top = 0.dp,
-                    start = 16.dp,
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 16.dp
-                ),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+        if (uiState.isLoading && uiState.filteredGames.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
+                contentAlignment = Alignment.Center
             ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(44.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.searching_for_games),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
+                Box(modifier = Modifier.fillMaxSize()) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            top = 0.dp,
+                            start = 16.dp,
+                            end = 16.dp,
+                            bottom = innerPadding.calculateBottomPadding() + 16.dp
+                        ),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
 
-                if (uiState.filteredGames.isNotEmpty()) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        HeroBannerPager(
-                            installedGames = uiState.filteredGames,
-                            onInspectGame = { pkg ->
-                                viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
-                                navigator.push(GameDetailScreen(pkg))
-                            },
-                            modifier = Modifier.layout { measurable, constraints ->
-                                val bleed = 16.dp.roundToPx()
-                                val placeable = measurable.measure(
-                                    constraints.copy(maxWidth = (constraints.maxWidth + (bleed * 2)))
+                        if (uiState.filteredGames.isNotEmpty()) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                HeroBannerPager(
+                                    installedGames = uiState.filteredGames,
+                                    onInspectGame = { pkg ->
+                                        viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
+                                        navigator.push(GameDetailScreen(pkg))
+                                    },
+                                    modifier = Modifier.layout { measurable, constraints ->
+                                        val bleed = 16.dp.roundToPx()
+                                        val placeable = measurable.measure(
+                                            constraints.copy(maxWidth = (constraints.maxWidth + (bleed * 2)))
+                                        )
+                                        layout(constraints.maxWidth, placeable.height) {
+                                            placeable.placeRelative(-bleed, 0)
+                                        }
+                                    }
                                 )
-                                layout(constraints.maxWidth, placeable.height) {
-                                    placeable.placeRelative(-bleed, 0)
+                            }
+                        } else {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .statusBarsPadding()
+                                        .padding(top = 80.dp, bottom = 32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.round_sports_esports_24),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                alpha = 0.4f
+                                            ),
+                                            modifier = Modifier.size(56.dp)
+                                        )
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            text = stringResource(R.string.no_games_here),
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.SemiBold
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.no_games_subtitle),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
-                        )
+                        }
+
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(vertical = 8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(
+                                    count = uiState.filters.size,
+                                    key = { index ->
+                                        when (val filter = uiState.filters[index]) {
+                                            is GameFilter.All -> "all"
+                                            is GameFilter.Installed -> "installed"
+                                            is GameFilter.Uninstalled -> "uninstalled"
+                                            is GameFilter.System -> "system_${filter.category.name}"
+                                            is GameFilter.Custom -> "custom_${filter.name}"
+                                        }
+                                    }
+                                ) { index ->
+                                    val filter = uiState.filters[index]
+                                    val isSelected = uiState.selectedFilter == filter
+
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = {
+                                            viewModel.onEvent(
+                                                GamesLauncherUiEvent.FilterSelected(
+                                                    filter
+                                                )
+                                            )
+                                        },
+                                        label = {
+                                            Text(
+                                                text = when (filter) {
+                                                    is GameFilter.All -> stringResource(R.string.filter_all)
+                                                    is GameFilter.Installed -> stringResource(R.string.category_installed)
+                                                    is GameFilter.Uninstalled -> stringResource(R.string.category_uninstalled)
+                                                    is GameFilter.System -> stringResource(filter.category.displayNameRes)
+                                                    is GameFilter.Custom -> filter.name
+                                                },
+                                                style = MaterialTheme.typography.labelLarge.copy(
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                )
+                                            )
+                                        },
+                                        leadingIcon = if (isSelected) {
+                                            {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.round_check_24),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        } else null,
+                                        shape = CircleShape,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                alpha = 0.3f
+                                            ),
+                                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                        ),
+                                        border = FilterChipDefaults.filterChipBorder(
+                                            enabled = true,
+                                            selected = isSelected,
+                                            borderColor = Color.Transparent,
+                                            selectedBorderColor = Color.Transparent,
+                                            disabledBorderColor = Color.Transparent,
+                                            disabledSelectedBorderColor = Color.Transparent
+                                        )
+                                    )
+                                }
+                            }
+                        }
+
+                        if (!uiState.hasUsageStatsPermission) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                UsagePermissionCard {
+                                    viewModel.onEvent(GamesLauncherUiEvent.GrantPermissionClicked)
+                                    context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                }
+                            }
+                        }
+
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            SystemStatusSection(
+                                batteryLevel = uiState.batteryLevel,
+                                storageUsage = uiState.storageUsage
+                            )
+                        }
+
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            AnalyticsSection(uiState.filteredGames)
+                        }
+
+                        if (uiState.recentGames.isNotEmpty()) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                RecentActivitySection(
+                                    games = uiState.recentGames,
+                                    onGameClick = { pkg ->
+                                        viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
+                                        navigator.push(GameDetailScreen(pkg))
+                                    }
+                                )
+                            }
+                        }
+
+                        if (uiState.filteredGames.isNotEmpty()) {
+                            item(span = { GridItemSpan(maxLineSpan) }) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.your_library),
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.games_count, uiState.filteredGames.size),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+
+                        items(uiState.filteredGames, key = { it.packageName }) { game ->
+                            GameGridCard(
+                                game = game,
+                                onClick = {
+                                    viewModel.onEvent(
+                                        GamesLauncherUiEvent.GameClicked(
+                                            game.packageName
+                                        )
+                                    )
+                                    navigator.push(GameDetailScreen(game.packageName))
+                                }
+                            )
+                        }
                     }
-                } else {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Box(
+
+                    if (uiState.isLoading) {
+                        LinearProgressIndicator(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .statusBarsPadding()
-                                .padding(top = 80.dp, bottom = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.round_sports_esports_24),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                    modifier = Modifier.size(56.dp)
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = "No games here",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Install a game or try a different filter.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(vertical = 8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(
-                            count = uiState.filters.size,
-                            key = { index ->
-                                when (val filter = uiState.filters[index]) {
-                                    is GameFilter.All -> "all"
-                                    is GameFilter.Installed -> "installed"
-                                    is GameFilter.Uninstalled -> "uninstalled"
-                                    is GameFilter.System -> "system_${filter.category.name}"
-                                    is GameFilter.Custom -> "custom_${filter.name}"
-                                }
-                            }
-                        ) { index ->
-                            val filter = uiState.filters[index]
-                            val isSelected = uiState.selectedFilter == filter
-
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = {
-                                    viewModel.onEvent(
-                                        GamesLauncherUiEvent.FilterSelected(
-                                            filter
-                                        )
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        text = when (filter) {
-                                            is GameFilter.All -> "All Games"
-                                            is GameFilter.Installed -> stringResource(R.string.category_installed)
-                                            is GameFilter.Uninstalled -> stringResource(R.string.category_uninstalled)
-                                            is GameFilter.System -> stringResource(filter.category.displayNameRes)
-                                            is GameFilter.Custom -> filter.name
-                                        },
-                                        style = MaterialTheme.typography.labelLarge.copy(
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                        )
-                                    )
-                                },
-                                leadingIcon = if (isSelected) {
-                                    {
-                                        Icon(
-                                            painter = painterResource(R.drawable.round_check_24),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                } else null,
-                                shape = CircleShape,
-                                colors = FilterChipDefaults.filterChipColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
-                                        alpha = 0.3f
-                                    ),
-                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = isSelected,
-                                    borderColor = Color.Transparent,
-                                    selectedBorderColor = Color.Transparent,
-                                    disabledBorderColor = Color.Transparent,
-                                    disabledSelectedBorderColor = Color.Transparent
-                                )
-                            )
-                        }
-                    }
-                }
-
-                if (!uiState.hasUsageStatsPermission) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        UsagePermissionCard {
-                            viewModel.onEvent(GamesLauncherUiEvent.GrantPermissionClicked)
-                            context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-                        }
-                    }
-                }
-
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    SystemStatusSection(
-                        batteryLevel = uiState.batteryLevel,
-                        storageUsage = uiState.storageUsage
-                    )
-                }
-
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    AnalyticsSection(uiState.filteredGames)
-                }
-
-                if (uiState.recentGames.isNotEmpty()) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        RecentActivitySection(
-                            games = uiState.recentGames,
-                            onGameClick = { pkg ->
-                                viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
-                                navigator.push(GameDetailScreen(pkg))
-                            }
+                                .align(Alignment.TopCenter),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = Color.Transparent
                         )
                     }
-                }
-
-                if (uiState.filteredGames.isNotEmpty()) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Your library",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Text(
-                                text = "${uiState.filteredGames.size} games",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                items(uiState.filteredGames, key = { it.packageName }) { game ->
-                    GameGridCard(
-                        game = game,
-                        onClick = {
-                            viewModel.onEvent(GamesLauncherUiEvent.GameClicked(game.packageName))
-                            navigator.push(GameDetailScreen(game.packageName))
-                        }
-                    )
                 }
             }
         }
@@ -323,12 +369,12 @@ private fun UsagePermissionCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Usage Stats Required",
+                text = stringResource(R.string.permission_required_title),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.error
             )
             Text(
-                text = "To track play time and show recent activity, OpenArcade needs usage access permission.",
+                text = stringResource(R.string.permission_required_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -337,7 +383,7 @@ private fun UsagePermissionCard(
                 onClick = onGrantClick,
                 modifier = Modifier.align(Alignment.End)
             ) {
-                Text("Grant Access")
+                Text(stringResource(R.string.grant_access))
             }
         }
     }
@@ -351,7 +397,7 @@ private fun SystemStatusSection(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "System Status",
+            text = stringResource(R.string.system_status),
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -360,15 +406,15 @@ private fun SystemStatusSection(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             StatusCard(
-                title = "Battery",
-                value = "$batteryLevel%",
+                title = stringResource(R.string.battery),
+                value = stringResource(R.string.battery_percentage, batteryLevel),
                 icon = R.drawable.round_bolt_24,
                 color = if (batteryLevel > 20) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f)
             )
             StatusCard(
-                title = "Storage",
-                value = "$storageUsage% Used",
+                title = stringResource(R.string.storage),
+                value = stringResource(R.string.storage_used, storageUsage),
                 icon = R.drawable.round_explore_24,
                 color = Color(0xFF2196F3),
                 modifier = Modifier.weight(1f)
@@ -434,7 +480,7 @@ private fun AnalyticsSection(games: List<GameEntry>, modifier: Modifier = Modifi
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "Analytics",
+            text = stringResource(R.string.analytics),
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -467,11 +513,11 @@ private fun AnalyticsSection(games: List<GameEntry>, modifier: Modifier = Modifi
                     )
                     Column {
                         Text(
-                            text = "Total Play Time",
+                            text = stringResource(R.string.total_play_time),
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                         )
                         Text(
-                            text = "${games.size} items in current filter",
+                            text = stringResource(R.string.items_in_filter, games.size),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -479,12 +525,16 @@ private fun AnalyticsSection(games: List<GameEntry>, modifier: Modifier = Modifi
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = if (totalPlayTimeHours > 0) "${totalPlayTimeHours}h ${totalPlayTimeMinutes}m" else "${totalPlayTimeMinutes}m",
+                        text = if (totalPlayTimeHours > 0) {
+                            stringResource(R.string.play_time_hours_minutes, totalPlayTimeHours, totalPlayTimeMinutes)
+                        } else {
+                            stringResource(R.string.play_time_minutes, totalPlayTimeMinutes)
+                        },
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Played",
+                        text = stringResource(R.string.played),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -509,7 +559,7 @@ private fun RecentActivitySection(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Recent Activity",
+                text = stringResource(R.string.recent_activity),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
             )
             Icon(
@@ -656,7 +706,7 @@ private fun HeroBannerPager(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.round_play_arrow_24),
-                        contentDescription = "Play ${game.title}"
+                        contentDescription = stringResource(R.string.play_game, game.title)
                     )
                 }
             }
@@ -787,7 +837,7 @@ private fun GameGridCard(
                         DateUtils.MINUTE_IN_MILLIS
                     ).toString()
                 } else {
-                    "Never played"
+                    stringResource(R.string.never_played)
                 }
 
                 Text(

@@ -4,4 +4,27 @@
     <string name="category_installed">Installed</string>
     <string name="category_uninstalled">Uninstalled</string>
     <string name="category_utility">Utility</string>
+    <string name="searching_for_games">Searching for games…</string>
+    <string name="no_games_here">No games here</string>
+    <string name="no_games_subtitle">Install a game or try a different filter.</string>
+    <string name="filter_all">All Games</string>
+    <string name="permission_required_title">Usage Stats Required</string>
+    <string name="permission_required_desc">To track play time and show recent activity, OpenArcade needs usage access permission.</string>
+    <string name="grant_access">Grant Access</string>
+    <string name="system_status">System Status</string>
+    <string name="battery">Battery</string>
+    <string name="battery_percentage">%1$d%%</string>
+    <string name="storage_used">%1$d%% Used</string>
+    <string name="storage">Storage</string>
+    <string name="analytics">Analytics</string>
+    <string name="total_play_time">Total Play Time</string>
+    <string name="items_in_filter">%1$d items in current filter</string>
+    <string name="played">Played</string>
+    <string name="play_time_hours_minutes">%1$dh %2$dm</string>
+    <string name="play_time_minutes">%1$dm</string>
+    <string name="recent_activity">Recent Activity</string>
+    <string name="your_library">Your library</string>
+    <string name="games_count">%1$d games</string>
+    <string name="play_game">Play %1$s</string>
+    <string name="never_played">Never played</string>
 </resources>

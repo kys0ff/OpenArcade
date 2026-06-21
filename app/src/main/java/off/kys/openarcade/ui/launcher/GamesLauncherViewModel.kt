@@ -74,17 +74,23 @@ class GamesLauncherViewModel(
     private val batteryLevel = MutableStateFlow(0)
     private val storageUsage = MutableStateFlow(0)
     private val hasUsageStatsPermission = MutableStateFlow(true)
+    private val isLoading = MutableStateFlow(false)
 
     val uiState: StateFlow<GamesLauncherUiState> = combine(
         combine(allGames, availableFilters, selectedFilter) { all, filters, selected ->
             Triple(all, filters, selected)
         },
-        combine(batteryLevel, storageUsage, hasUsageStatsPermission) { battery, storage, permission ->
-            Triple(battery, storage, permission)
+        combine(
+            batteryLevel,
+            storageUsage,
+            hasUsageStatsPermission,
+            isLoading
+        ) { battery, storage, permission, loading ->
+            LoadingData(battery, storage, permission, loading)
         }
     ) { gameData, deviceData ->
         val (all, filters, selected) = gameData
-        val (battery, storage, permission) = deviceData
+        val (battery, storage, permission, loading) = deviceData
 
         val filtered = when (selected) {
             is GameFilter.All -> all
@@ -105,12 +111,20 @@ class GamesLauncherViewModel(
             selectedFilter = selected,
             batteryLevel = battery,
             storageUsage = storage,
-            hasUsageStatsPermission = permission
+            hasUsageStatsPermission = permission,
+            isLoading = loading
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = GamesLauncherUiState()
+    )
+
+    private data class LoadingData(
+        val battery: Int,
+        val storage: Int,
+        val permission: Boolean,
+        val loading: Boolean
     )
 
     private val batteryReceiver = object : BroadcastReceiver() {
@@ -135,31 +149,33 @@ class GamesLauncherViewModel(
         application.unregisterReceiver(batteryReceiver)
     }
 
-    fun onEvent(event: GamesLauncherUiEvent) {
-        when (event) {
-            is GamesLauncherUiEvent.FilterSelected -> {
-                selectedFilter.value = event.filter
-            }
-            is GamesLauncherUiEvent.RefreshRequested -> {
-                refreshGames()
-            }
-            is GamesLauncherUiEvent.GameClicked -> {
-                // Navigation handled in Screen, but could trigger analytics here
-                Log.d("GamesLauncher", "Game clicked: ${event.packageName}")
-            }
-            is GamesLauncherUiEvent.GrantPermissionClicked -> {
-                // Handled in Screen (startActivity)
-                Log.d("GamesLauncher", "Grant permission clicked")
-            }
-            is GamesLauncherUiEvent.PermissionCheckRequested -> {
-                updatePermissionStatus()
-            }
+    fun onEvent(event: GamesLauncherUiEvent) = when (event) {
+        is GamesLauncherUiEvent.FilterSelected -> {
+            selectedFilter.value = event.filter
         }
+
+        is GamesLauncherUiEvent.RefreshRequested -> refreshGames()
+        is GamesLauncherUiEvent.GameClicked -> Log.d(
+            "GamesLauncher",
+            "Game clicked: ${event.packageName}"
+        )
+
+        is GamesLauncherUiEvent.GrantPermissionClicked -> Log.d(
+            "GamesLauncher",
+            "Grant permission clicked"
+        )
+
+        is GamesLauncherUiEvent.PermissionCheckRequested -> updatePermissionStatus()
     }
 
     private fun refreshGames() {
         viewModelScope.launch {
-            refreshGamesUseCase()
+            isLoading.value = true
+            try {
+                refreshGamesUseCase()
+            } finally {
+                isLoading.value = false
+            }
         }
     }
 

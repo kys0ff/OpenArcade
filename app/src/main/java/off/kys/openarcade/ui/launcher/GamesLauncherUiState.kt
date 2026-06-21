@@ -10,5 +10,6 @@ data class GamesLauncherUiState(
     val selectedFilter: GameFilter = GameFilter.All,
     val batteryLevel: Int = 0,
     val storageUsage: Int = 0,
-    val hasUsageStatsPermission: Boolean = true
+    val hasUsageStatsPermission: Boolean = true,
+    val isLoading: Boolean = false
 )
