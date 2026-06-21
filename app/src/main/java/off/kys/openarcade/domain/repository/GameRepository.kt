@@ -7,4 +7,5 @@ interface GameRepository {
     fun getGames(): Flow<List<GameEntry>>
     fun getGameByPackageName(packageName: String): Flow<GameEntry?>
     suspend fun refreshGames()
+    suspend fun updateCustomCategories(packageName: String, customCategories: List<String>)
 }

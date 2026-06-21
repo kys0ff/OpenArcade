@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
+import off.kys.openarcade.ui.launcher.GamesLauncherScreen
 import off.kys.openarcade.ui.theme.OpenArcadeTheme
 
 class MainActivity : ComponentActivity() {

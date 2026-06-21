@@ -46,11 +46,26 @@ class GameRepositoryImpl(
 
     override suspend fun refreshGames() {
         val scannedGames = GameScanner.fetchInstalledGames(context)
-        val entities = scannedGames.map { game ->
-            val primaryColor = ColorExtractor.extractPrimaryColor(game.icon)
-            game.copy(primaryColorArgb = primaryColor.toArgb())
+        val existingGames = gameDao.getAllGamesSync()
+
+        val entities = scannedGames.map { scanned ->
+            val existing = existingGames.find { it.packageName == scanned.packageName }
+            scanned.copy(
+                category = existing?.category ?: scanned.category,
+                customCategories = existing?.customCategories ?: emptyList(),
+                primaryColorArgb = ColorExtractor.extractPrimaryColor(scanned.icon).toArgb()
+            )
         }
-        gameDao.deleteAll()
+        
+        // Update database without full wipe
         gameDao.insertGames(entities)
+        
+        // Mark games that are no longer installed as uninstalled
+        val presentPackageNames = scannedGames.map { it.packageName }
+        gameDao.markMissingAsUninstalled(presentPackageNames)
+    }
+
+    override suspend fun updateCustomCategories(packageName: String, customCategories: List<String>) {
+        gameDao.updateCustomCategories(packageName, customCategories)
     }
 }

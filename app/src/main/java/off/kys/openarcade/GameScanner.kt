@@ -5,6 +5,9 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.graphics.drawable.toBitmap
+import androidx.palette.graphics.Palette
+import off.kys.openarcade.domain.model.GameCategory
 import off.kys.openarcade.domain.model.GameEntry
 
 object GameScanner {
@@ -24,7 +27,8 @@ object GameScanner {
         val detectedGames = mutableListOf<GameEntry>()
 
         for (resolveInfo in launchables) {
-            val appInfo = resolveInfo.activityInfo.applicationInfo
+            val activityInfo = resolveInfo.activityInfo
+            val appInfo = activityInfo.applicationInfo
 
             // Check if application flags or category label it as a game
             val isGame = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -39,12 +43,27 @@ object GameScanner {
                 val icon = appInfo.loadIcon(pm)
                 val packageName = appInfo.packageName
 
+                // Extract colors using Palette
+                val palette = Palette.from(icon.toBitmap()).generate()
+                val primarySwatch = palette.vibrantSwatch ?: palette.dominantSwatch
+                val secondarySwatch = palette.mutedSwatch ?: palette.lightVibrantSwatch
+                val tertiarySwatch = palette.darkVibrantSwatch ?: palette.darkMutedSwatch
+                
+                val primaryColor = primarySwatch?.rgb ?: 0xFF2A2A2A.toInt()
+                val onPrimaryColor = primarySwatch?.titleTextColor ?: 0xFFFFFFFF.toInt()
+                val secondaryColor = secondarySwatch?.rgb ?: primaryColor
+                val tertiaryColor = tertiarySwatch?.rgb ?: primaryColor
+
                 detectedGames.add(
                     GameEntry(
                         packageName = packageName,
                         title = title,
-                        category = "Installed Game",
-                        primaryColorArgb = 0xFF2A2A2A.toInt(),
+                        category = GameCategory.UNDEFINED,
+                        isInstalled = true,
+                        primaryColorArgb = primaryColor,
+                        onPrimaryColorArgb = onPrimaryColor,
+                        secondaryColorArgb = secondaryColor,
+                        tertiaryColorArgb = tertiaryColor,
                         icon = icon
                     )
                 )
@@ -53,13 +72,22 @@ object GameScanner {
 
         // UI fallback if user lacks mobile games
         if (detectedGames.isEmpty()) {
+            val icon = context.applicationInfo.loadIcon(pm)
+            val palette = Palette.from(icon.toBitmap()).generate()
+            val primarySwatch = palette.vibrantSwatch ?: palette.dominantSwatch
+
+            val primaryColor = primarySwatch?.rgb ?: 0xFF2A2A2A.toInt()
+
             return listOf(
                 GameEntry(
                     packageName = context.packageName,
                     title = "System Deck (Fallback)",
-                    category = "Utility",
-                    primaryColorArgb = 0xFF2A2A2A.toInt(),
-                    icon = context.applicationInfo.loadIcon(pm)
+                    category = GameCategory.UTILITY,
+                    primaryColorArgb = primaryColor,
+                    onPrimaryColorArgb = primarySwatch?.titleTextColor ?: 0xFFFFFFFF.toInt(),
+                    secondaryColorArgb = palette.mutedSwatch?.rgb ?: primaryColor,
+                    tertiaryColorArgb = palette.darkVibrantSwatch?.rgb ?: primaryColor,
+                    icon = icon
                 )
             )
         }

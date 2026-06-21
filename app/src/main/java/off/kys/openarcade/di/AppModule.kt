@@ -7,6 +7,7 @@ import off.kys.openarcade.domain.repository.GameRepository
 import off.kys.openarcade.domain.usecase.GetGameByPackageUseCase
 import off.kys.openarcade.domain.usecase.GetGamesUseCase
 import off.kys.openarcade.domain.usecase.RefreshGamesUseCase
+import off.kys.openarcade.domain.usecase.UpdateGameCategoryUseCase
 import off.kys.openarcade.ui.detail.GameDetailViewModel
 import off.kys.openarcade.ui.launcher.GamesLauncherViewModel
 import org.koin.android.ext.koin.androidApplication
@@ -19,7 +20,9 @@ val appModule = module {
         Room.databaseBuilder(
             androidContext(),
             AppDatabase::class.java, "openarcade-db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration(true)
+            .build()
     }
 
     single { get<AppDatabase>().gameDao() }
@@ -29,6 +32,7 @@ val appModule = module {
     factory { GetGamesUseCase(get()) }
     factory { RefreshGamesUseCase(get()) }
     factory { GetGameByPackageUseCase(get()) }
+    factory { UpdateGameCategoryUseCase(get()) }
 
     viewModel { GamesLauncherViewModel(get(), get()) }
 
@@ -36,7 +40,8 @@ val appModule = module {
         GameDetailViewModel(
             packageName = packageName,
             application = androidApplication(),
-            getGameByPackageUseCase = get()
+            getGameByPackageUseCase = get(),
+            updateGameCategoryUseCase = get()
         )
     }
 }

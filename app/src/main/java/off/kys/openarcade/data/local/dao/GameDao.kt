@@ -18,6 +18,15 @@ interface GameDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGames(games: List<GameEntry>)
 
+    @Query("UPDATE games SET customCategories = :customCategories WHERE packageName = :packageName")
+    suspend fun updateCustomCategories(packageName: String, customCategories: List<String>)
+
+    @Query("SELECT * FROM games")
+    suspend fun getAllGamesSync(): List<GameEntry>
+
+    @Query("UPDATE games SET isInstalled = 0 WHERE packageName NOT IN (:presentPackageNames)")
+    suspend fun markMissingAsUninstalled(presentPackageNames: List<String>)
+
     @Query("DELETE FROM games")
     suspend fun deleteAll()
 }
