@@ -12,13 +12,14 @@ import android.os.Build
 import android.os.Process
 import android.os.StatFs
 import android.os.storage.StorageManager
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -35,14 +36,16 @@ class GamesLauncherViewModel(
     getGamesUseCase: GetGamesUseCase,
 ) : ViewModel() {
 
-    val allGames: StateFlow<List<GameEntry>> = getGamesUseCase()
+    private val selectedFilter = MutableStateFlow<GameFilter>(GameFilter.All)
+
+    private val allGames: StateFlow<List<GameEntry>> = getGamesUseCase()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
 
-    val availableFilters: StateFlow<List<GameFilter>> = allGames.map { games ->
+    private val availableFilters: StateFlow<List<GameFilter>> = allGames.map { games ->
         val filters = mutableListOf<GameFilter>()
         if (games.isNotEmpty()) {
             filters.add(GameFilter.All)
@@ -68,18 +71,54 @@ class GamesLauncherViewModel(
         initialValue = listOf(GameFilter.All)
     )
 
-    private val _batteryLevel = MutableStateFlow(0)
-    val batteryLevel: StateFlow<Int> = _batteryLevel.asStateFlow()
+    private val batteryLevel = MutableStateFlow(0)
+    private val storageUsage = MutableStateFlow(0)
+    private val hasUsageStatsPermission = MutableStateFlow(true)
 
-    private val _storageInfo = MutableStateFlow(0) // Percentage used
-    val storageUsage: StateFlow<Int> = _storageInfo.asStateFlow()
+    val uiState: StateFlow<GamesLauncherUiState> = combine(
+        combine(allGames, availableFilters, selectedFilter) { all, filters, selected ->
+            Triple(all, filters, selected)
+        },
+        combine(batteryLevel, storageUsage, hasUsageStatsPermission) { battery, storage, permission ->
+            Triple(battery, storage, permission)
+        }
+    ) { gameData, deviceData ->
+        val (all, filters, selected) = gameData
+        val (battery, storage, permission) = deviceData
+
+        val filtered = when (selected) {
+            is GameFilter.All -> all
+            is GameFilter.Installed -> all.filter { it.isInstalled }
+            is GameFilter.Uninstalled -> all.filter { !it.isInstalled }
+            is GameFilter.System -> all.filter { it.category == selected.category }
+            is GameFilter.Custom -> all.filter { selected.name in it.customCategories }
+        }
+
+        val recent = all.filter { it.lastPlayed > 0 }
+            .sortedByDescending { it.lastPlayed }
+            .take(5)
+
+        GamesLauncherUiState(
+            filteredGames = filtered,
+            recentGames = recent,
+            filters = filters,
+            selectedFilter = selected,
+            batteryLevel = battery,
+            storageUsage = storage,
+            hasUsageStatsPermission = permission
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = GamesLauncherUiState()
+    )
 
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val level = intent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
             val scale = intent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
             if (level != -1 && scale != -1) {
-                _batteryLevel.value = (level * 100 / scale.toFloat()).toInt()
+                batteryLevel.value = (level * 100 / scale.toFloat()).toInt()
             }
         }
     }
@@ -87,11 +126,38 @@ class GamesLauncherViewModel(
     init {
         refreshGames()
         updateStorageInfo()
+        updatePermissionStatus()
         val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
         application.registerReceiver(batteryReceiver, filter)
     }
 
-    fun refreshGames() {
+    override fun onCleared() {
+        application.unregisterReceiver(batteryReceiver)
+    }
+
+    fun onEvent(event: GamesLauncherUiEvent) {
+        when (event) {
+            is GamesLauncherUiEvent.FilterSelected -> {
+                selectedFilter.value = event.filter
+            }
+            is GamesLauncherUiEvent.RefreshRequested -> {
+                refreshGames()
+            }
+            is GamesLauncherUiEvent.GameClicked -> {
+                // Navigation handled in Screen, but could trigger analytics here
+                Log.d("GamesLauncher", "Game clicked: ${event.packageName}")
+            }
+            is GamesLauncherUiEvent.GrantPermissionClicked -> {
+                // Handled in Screen (startActivity)
+                Log.d("GamesLauncher", "Grant permission clicked")
+            }
+            is GamesLauncherUiEvent.PermissionCheckRequested -> {
+                updatePermissionStatus()
+            }
+        }
+    }
+
+    private fun refreshGames() {
         viewModelScope.launch {
             refreshGamesUseCase()
         }
@@ -113,7 +179,7 @@ class GamesLauncherViewModel(
             val totalBytes = storageStatsManager.getTotalBytes(StorageManager.UUID_DEFAULT)
             val freeBytes = storageStatsManager.getFreeBytes(StorageManager.UUID_DEFAULT)
             val usedBytes = totalBytes - freeBytes
-            _storageInfo.value = (usedBytes.toFloat() / totalBytes * 100).toInt()
+            storageUsage.value = (usedBytes.toFloat() / totalBytes * 100).toInt()
         } catch (_: Exception) {
             updateStorageInfoLegacy()
         }
@@ -125,13 +191,24 @@ class GamesLauncherViewModel(
             val totalBytes = stat.blockCountLong * stat.blockSizeLong
             val availableBytes = stat.availableBlocksLong * stat.blockSizeLong
             val usedBytes = totalBytes - availableBytes
-            _storageInfo.value = (usedBytes.toFloat() / totalBytes * 100).toInt()
+            storageUsage.value = (usedBytes.toFloat() / totalBytes * 100).toInt()
         } catch (_: Exception) {
-            _storageInfo.value = 0
+            storageUsage.value = 0
         }
     }
 
-    fun hasUsageStatsPermission(): Boolean {
+    private fun updatePermissionStatus() {
+        val wasGranted = hasUsageStatsPermission.value
+        val isNowGranted = hasUsageStatsPermission()
+        hasUsageStatsPermission.value = isNowGranted
+
+        if (!wasGranted && isNowGranted) {
+            refreshGames()
+            Log.d("GamesLauncher", "Usage stats permission granted - refreshing games")
+        }
+    }
+
+    private fun hasUsageStatsPermission(): Boolean {
         val appOps = application.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
         val mode = appOps.checkOpNoThrow(
             AppOpsManager.OPSTR_GET_USAGE_STATS,

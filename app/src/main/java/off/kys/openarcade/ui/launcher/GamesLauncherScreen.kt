@@ -43,9 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +58,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -77,29 +77,12 @@ class GamesLauncherScreen : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val viewModel: GamesLauncherViewModel = koinViewModel()
-        val allGames by viewModel.allGames.collectAsState()
-        val filters by viewModel.availableFilters.collectAsState()
-        val batteryLevel by viewModel.batteryLevel.collectAsState()
-        val storageUsage by viewModel.storageUsage.collectAsState()
+        val uiState by viewModel.uiState.collectAsState()
 
         val context = LocalContext.current
-        var selectedFilterIndex by remember { mutableIntStateOf(0) }
 
-        val safeFilterIndex = if (selectedFilterIndex >= filters.size) 0 else selectedFilterIndex
-        val selectedFilter = filters.getOrElse(safeFilterIndex) { GameFilter.All }
-
-        val filteredGames = remember(allGames, selectedFilter) {
-            when (selectedFilter) {
-                is GameFilter.All -> allGames
-                is GameFilter.Installed -> allGames.filter { it.isInstalled }
-                is GameFilter.Uninstalled -> allGames.filter { !it.isInstalled }
-                is GameFilter.System -> allGames.filter { it.category == selectedFilter.category }
-                is GameFilter.Custom -> allGames.filter { selectedFilter.name in it.customCategories }
-            }
-        }
-
-        val recentGames = remember(allGames) {
-            allGames.filter { it.lastPlayed > 0 }.sortedByDescending { it.lastPlayed }
+        LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+            viewModel.onEvent(GamesLauncherUiEvent.PermissionCheckRequested)
         }
 
         Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
@@ -116,17 +99,18 @@ class GamesLauncherScreen : Screen {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
 
-                // ─── Hero Pager ───────────────────────────────────────────────
-                if (filteredGames.isNotEmpty()) {
+                if (uiState.filteredGames.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         HeroBannerPager(
-                            installedGames = filteredGames,
-                            onInspectGame = { pkg -> navigator.push(GameDetailScreen(pkg)) },
+                            installedGames = uiState.filteredGames,
+                            onInspectGame = { pkg ->
+                                viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
+                                navigator.push(GameDetailScreen(pkg))
+                            },
                             modifier = Modifier.layout { measurable, constraints ->
-                                // Bleed past the grid's horizontal padding
                                 val bleed = 16.dp.roundToPx()
                                 val placeable = measurable.measure(
-                                    constraints.copy(maxWidth = constraints.maxWidth + bleed * 2)
+                                    constraints.copy(maxWidth = (constraints.maxWidth + (bleed * 2)))
                                 )
                                 layout(constraints.maxWidth, placeable.height) {
                                     placeable.placeRelative(-bleed, 0)
@@ -135,7 +119,6 @@ class GamesLauncherScreen : Screen {
                         )
                     }
                 } else {
-                    // ─── Empty State ──────────────────────────────────────────
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Box(
                             modifier = Modifier
@@ -175,15 +158,13 @@ class GamesLauncherScreen : Screen {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        // Padding at the start and end ensures chips don't look glued to the screen edges while scrolling
                         contentPadding = PaddingValues(vertical = 8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         items(
-                            count = filters.size,
+                            count = uiState.filters.size,
                             key = { index ->
-                                // Providing a unique key stops the list from aggressively flashing during state changes
-                                when (val filter = filters[index]) {
+                                when (val filter = uiState.filters[index]) {
                                     is GameFilter.All -> "all"
                                     is GameFilter.Installed -> "installed"
                                     is GameFilter.Uninstalled -> "uninstalled"
@@ -192,12 +173,18 @@ class GamesLauncherScreen : Screen {
                                 }
                             }
                         ) { index ->
-                            val isSelected = safeFilterIndex == index
-                            val filter = filters[index]
+                            val filter = uiState.filters[index]
+                            val isSelected = uiState.selectedFilter == filter
 
                             FilterChip(
                                 selected = isSelected,
-                                onClick = { selectedFilterIndex = index },
+                                onClick = {
+                                    viewModel.onEvent(
+                                        GamesLauncherUiEvent.FilterSelected(
+                                            filter
+                                        )
+                                    )
+                                },
                                 label = {
                                     Text(
                                         text = when (filter) {
@@ -212,7 +199,6 @@ class GamesLauncherScreen : Screen {
                                         )
                                     )
                                 },
-                                // A subtle checkmark or custom indicator makes selection obvious instantly
                                 leadingIcon = if (isSelected) {
                                     {
                                         Icon(
@@ -222,7 +208,7 @@ class GamesLauncherScreen : Screen {
                                         )
                                     }
                                 } else null,
-                                shape = CircleShape, // Fully rounded pill shapes look much cleaner in modern dashboards
+                                shape = CircleShape,
                                 colors = FilterChipDefaults.filterChipColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
                                         alpha = 0.3f
@@ -245,36 +231,39 @@ class GamesLauncherScreen : Screen {
                     }
                 }
 
-                // ─── Usage Permission ────────────────────────────────────────
-                if (!viewModel.hasUsageStatsPermission()) {
+                if (!uiState.hasUsageStatsPermission) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        UsagePermissionCard(onGrantClick = {
+                        UsagePermissionCard {
+                            viewModel.onEvent(GamesLauncherUiEvent.GrantPermissionClicked)
                             context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-                        })
+                        }
                     }
                 }
 
-                // ─── System Status ───────────────────────────────────────────
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    SystemStatusSection(batteryLevel = batteryLevel, storageUsage = storageUsage)
+                    SystemStatusSection(
+                        batteryLevel = uiState.batteryLevel,
+                        storageUsage = uiState.storageUsage
+                    )
                 }
 
-                // ─── Analytics ───────────────────────────────────────────────
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    AnalyticsSection(filteredGames)
+                    AnalyticsSection(uiState.filteredGames)
                 }
 
-                // ─── Recent Activity ─────────────────────────────────────────
-                if (recentGames.isNotEmpty()) {
+                if (uiState.recentGames.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         RecentActivitySection(
-                            games = recentGames.take(5),
-                            onGameClick = { pkg -> navigator.push(GameDetailScreen(pkg)) }
+                            games = uiState.recentGames,
+                            onGameClick = { pkg ->
+                                viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
+                                navigator.push(GameDetailScreen(pkg))
+                            }
                         )
                     }
                 }
 
-                if (filteredGames.isNotEmpty()) {
+                if (uiState.filteredGames.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -289,7 +278,7 @@ class GamesLauncherScreen : Screen {
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
-                                text = "${filteredGames.size} games",
+                                text = "${uiState.filteredGames.size} games",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -297,10 +286,13 @@ class GamesLauncherScreen : Screen {
                     }
                 }
 
-                items(filteredGames, key = { it.packageName }) { game ->
+                items(uiState.filteredGames, key = { it.packageName }) { game ->
                     GameGridCard(
                         game = game,
-                        onClick = { navigator.push(GameDetailScreen(game.packageName)) }
+                        onClick = {
+                            viewModel.onEvent(GamesLauncherUiEvent.GameClicked(game.packageName))
+                            navigator.push(GameDetailScreen(game.packageName))
+                        }
                     )
                 }
             }
@@ -309,12 +301,24 @@ class GamesLauncherScreen : Screen {
 }
 
 @Composable
-private fun UsagePermissionCard(onGrantClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun UsagePermissionCard(
+    modifier: Modifier = Modifier,
+    onGrantClick: () -> Unit
+) {
     OutlinedCard(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer.copy(
+                alpha = 0.1f
+            )
+        ),
         border = CardDefaults.outlinedCardBorder().copy(
-            brush = Brush.linearGradient(listOf(MaterialTheme.colorScheme.error.copy(alpha = 0.5f), Color.Transparent))
+            brush = Brush.linearGradient(
+                listOf(
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
+                    Color.Transparent
+                )
+            )
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -452,6 +456,7 @@ private fun AnalyticsSection(games: List<GameEntry>, modifier: Modifier = Modifi
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -563,14 +568,12 @@ private fun HeroBannerPager(
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
-                // Base color fill
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(game.getPrimaryColor(alpha = 1.0f))
                 )
 
-                // Blown-up icon with parallax
                 AsyncImage(
                     model = game.icon,
                     contentDescription = null,
@@ -600,7 +603,6 @@ private fun HeroBannerPager(
                         .statusBarsPadding()
                 )
 
-                // Bottom cinema gradient
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -615,11 +617,9 @@ private fun HeroBannerPager(
                         )
                 )
 
-                // Title + categories (Dots removed from here)
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        // Extra bottom padding to leave dedicated room for the static dots below it
                         .padding(start = 24.dp, end = 88.dp, bottom = 44.dp)
                 ) {
                     Text(
@@ -646,7 +646,6 @@ private fun HeroBannerPager(
                     )
                 }
 
-                // FAB
                 FloatingActionButton(
                     onClick = { onInspectGame(game.packageName) },
                     containerColor = game.getPrimaryColor(),
@@ -663,7 +662,6 @@ private fun HeroBannerPager(
             }
         }
 
-        // Static Pager Dots — Placed outside HorizontalPager so they don't slide
         if (pagerCount > 1) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -678,8 +676,6 @@ private fun HeroBannerPager(
                         animationSpec = tween(250),
                         label = "dotWidth"
                     )
-
-                    // Pull the game color context for the active dot dynamically from the active page
                     val activeGameColor =
                         installedGames.getOrNull(pagerState.currentPage)?.getPrimaryColor()
                             ?: Color.White
@@ -698,8 +694,6 @@ private fun HeroBannerPager(
         }
     }
 }
-
-// ─── Game Grid Card ───────────────────────────────────────────────────────────
 
 @Composable
 private fun GameGridCard(
@@ -724,7 +718,6 @@ private fun GameGridCard(
         modifier = modifier.fillMaxWidth()
     ) {
         Column {
-            // Icon well — colored gradient derived from game palette
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -757,7 +750,6 @@ private fun GameGridCard(
                 }
             }
 
-            // Thin color accent strip — game identity marker
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -773,7 +765,6 @@ private fun GameGridCard(
                     )
             )
 
-            // Title + category
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
