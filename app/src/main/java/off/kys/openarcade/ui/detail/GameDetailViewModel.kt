@@ -35,12 +35,15 @@ class GameDetailViewModel(
     fun onEvent(event: GameDetailUiEvent) {
         when (event) {
             is GameDetailUiEvent.LaunchGame -> launchGame()
-            is GameDetailUiEvent.OpenCategoryDialog -> _uiState.update {
-                it.copy(
-                    showCategoryDialog = true,
-                    editingCategories = it.game?.customCategories ?: emptyList(),
-                    newCategoryDraft = ""
-                )
+            is GameDetailUiEvent.OpenCategoryDialog -> {
+                val currentCategories = uiState.value.game?.customCategories ?: emptyList()
+                _uiState.update {
+                    it.copy(
+                        showCategoryDialog = true,
+                        editingCategories = currentCategories,
+                        newCategoryDraft = ""
+                    )
+                }
             }
 
             is GameDetailUiEvent.CloseCategoryDialog -> _uiState.update { it.copy(showCategoryDialog = false) }
