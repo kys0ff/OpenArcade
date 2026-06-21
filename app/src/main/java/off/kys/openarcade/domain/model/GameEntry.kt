@@ -20,6 +20,8 @@ data class GameEntry(
     val secondaryColorArgb: Int,
     val tertiaryColorArgb: Int,
     val customCategories: List<String> = emptyList(),
+    val lastPlayed: Long = 0,
+    val totalPlayTime: Long = 0,
     @Ignore @Transient val icon: Drawable? = null
 ) {
     // Required constructor for Room when using @Ignore on properties
@@ -32,7 +34,9 @@ data class GameEntry(
         onPrimaryColorArgb: Int,
         secondaryColorArgb: Int,
         tertiaryColorArgb: Int,
-        customCategories: List<String> = emptyList()
+        customCategories: List<String> = emptyList(),
+        lastPlayed: Long = 0,
+        totalPlayTime: Long = 0
     ) : this(
         packageName,
         title,
@@ -43,6 +47,8 @@ data class GameEntry(
         secondaryColorArgb,
         tertiaryColorArgb,
         customCategories,
+        lastPlayed,
+        totalPlayTime,
         null
     )
 

@@ -1,5 +1,8 @@
 package off.kys.openarcade.ui.launcher
 
+import android.content.Intent
+import android.provider.Settings
+import android.text.format.DateUtils
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -21,9 +24,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -31,8 +36,6 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -51,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +66,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import coil.compose.AsyncImage
 import off.kys.openarcade.R
 import off.kys.openarcade.domain.model.GameEntry
+import off.kys.openarcade.domain.model.GameFilter
 import off.kys.openarcade.ui.detail.GameDetailScreen
 import org.koin.androidx.compose.koinViewModel
 import kotlin.math.absoluteValue
@@ -74,9 +79,11 @@ class GamesLauncherScreen : Screen {
         val viewModel: GamesLauncherViewModel = koinViewModel()
         val allGames by viewModel.allGames.collectAsState()
         val filters by viewModel.availableFilters.collectAsState()
+        val batteryLevel by viewModel.batteryLevel.collectAsState()
+        val storageUsage by viewModel.storageUsage.collectAsState()
 
+        val context = LocalContext.current
         var selectedFilterIndex by remember { mutableIntStateOf(0) }
-        var selectedTab by remember { mutableIntStateOf(0) }
 
         val safeFilterIndex = if (selectedFilterIndex >= filters.size) 0 else selectedFilterIndex
         val selectedFilter = filters.getOrElse(safeFilterIndex) { GameFilter.All }
@@ -91,31 +98,11 @@ class GamesLauncherScreen : Screen {
             }
         }
 
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
-            bottomBar = {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
-                    val tabs = listOf(
-                        Pair("Library", R.drawable.round_sports_esports_24),
-                        Pair("Dashboard", R.drawable.round_dashboard_24),
-                        Pair("Explore", R.drawable.round_explore_24)
-                    )
-                    tabs.forEachIndexed { index, (title, icon) ->
-                        NavigationBarItem(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            icon = {
-                                Icon(
-                                    painter = painterResource(icon),
-                                    contentDescription = title
-                                )
-                            },
-                            label = { Text(title) }
-                        )
-                    }
-                }
-            }
-        ) { innerPadding ->
+        val recentGames = remember(allGames) {
+            allGames.filter { it.lastPlayed > 0 }.sortedByDescending { it.lastPlayed }
+        }
+
+        Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxSize(),
@@ -237,7 +224,9 @@ class GamesLauncherScreen : Screen {
                                 } else null,
                                 shape = CircleShape, // Fully rounded pill shapes look much cleaner in modern dashboards
                                 colors = FilterChipDefaults.filterChipColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                        alpha = 0.3f
+                                    ),
                                     labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                     selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -253,6 +242,35 @@ class GamesLauncherScreen : Screen {
                                 )
                             )
                         }
+                    }
+                }
+
+                // ─── Usage Permission ────────────────────────────────────────
+                if (!viewModel.hasUsageStatsPermission()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        UsagePermissionCard(onGrantClick = {
+                            context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                        })
+                    }
+                }
+
+                // ─── System Status ───────────────────────────────────────────
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    SystemStatusSection(batteryLevel = batteryLevel, storageUsage = storageUsage)
+                }
+
+                // ─── Analytics ───────────────────────────────────────────────
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    AnalyticsSection(filteredGames)
+                }
+
+                // ─── Recent Activity ─────────────────────────────────────────
+                if (recentGames.isNotEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        RecentActivitySection(
+                            games = recentGames.take(5),
+                            onGameClick = { pkg -> navigator.push(GameDetailScreen(pkg)) }
+                        )
                     }
                 }
 
@@ -284,6 +302,239 @@ class GamesLauncherScreen : Screen {
                         game = game,
                         onClick = { navigator.push(GameDetailScreen(game.packageName)) }
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UsagePermissionCard(onGrantClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedCard(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)),
+        border = CardDefaults.outlinedCardBorder().copy(
+            brush = Brush.linearGradient(listOf(MaterialTheme.colorScheme.error.copy(alpha = 0.5f), Color.Transparent))
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Usage Stats Required",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = "To track play time and show recent activity, OpenArcade needs usage access permission.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = onGrantClick,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text("Grant Access")
+            }
+        }
+    }
+}
+
+@Composable
+private fun SystemStatusSection(
+    batteryLevel: Int,
+    storageUsage: Int,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "System Status",
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StatusCard(
+                title = "Battery",
+                value = "$batteryLevel%",
+                icon = R.drawable.round_bolt_24,
+                color = if (batteryLevel > 20) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f)
+            )
+            StatusCard(
+                title = "Storage",
+                value = "$storageUsage% Used",
+                icon = R.drawable.round_explore_24,
+                color = Color(0xFF2196F3),
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatusCard(
+    title: String,
+    value: String,
+    icon: Int,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    OutlinedCard(
+        modifier = modifier,
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = CardDefaults.outlinedCardBorder().copy(
+            brush = Brush.linearGradient(listOf(color.copy(alpha = 0.4f), Color.Transparent))
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(color.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsSection(games: List<GameEntry>, modifier: Modifier = Modifier) {
+    val totalPlayTimeMs = games.sumOf { it.totalPlayTime }
+    val totalPlayTimeHours = totalPlayTimeMs / (1000 * 60 * 60)
+    val totalPlayTimeMinutes = (totalPlayTimeMs / (1000 * 60)) % 60
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "Analytics",
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        OutlinedCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            border = CardDefaults.outlinedCardBorder().copy(
+                brush = Brush.linearGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                        Color.Transparent
+                    )
+                )
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.round_bar_chart_24),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Column {
+                        Text(
+                            text = "Total Play Time",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            text = "${games.size} items in current filter",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = if (totalPlayTimeHours > 0) "${totalPlayTimeHours}h ${totalPlayTimeMinutes}m" else "${totalPlayTimeMinutes}m",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Played",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentActivitySection(
+    games: List<GameEntry>,
+    onGameClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Recent Activity",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Icon(
+                painter = painterResource(R.drawable.round_history_24),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(bottom = 4.dp)
+        ) {
+            items(games, key = { "recent_${it.packageName}" }) { game ->
+                Card(
+                    onClick = { onGameClick(game.packageName) },
+                    modifier = Modifier.size(64.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        AsyncImage(
+                            model = game.icon,
+                            contentDescription = game.title,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .padding(4.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
                 }
             }
         }
@@ -381,9 +632,10 @@ private fun HeroBannerPager(
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.height(3.dp))
-                    val categoryStrings = game.customCategories + if (game.category.displayNameRes != 0) {
-                        listOf(stringResource(game.category.displayNameRes))
-                    } else emptyList()
+                    val categoryStrings =
+                        game.customCategories + if (game.category.displayNameRes != 0) {
+                            listOf(stringResource(game.category.displayNameRes))
+                        } else emptyList()
 
                     Text(
                         text = categoryStrings.joinToString(" · "),
@@ -428,7 +680,9 @@ private fun HeroBannerPager(
                     )
 
                     // Pull the game color context for the active dot dynamically from the active page
-                    val activeGameColor = installedGames.getOrNull(pagerState.currentPage)?.getPrimaryColor() ?: Color.White
+                    val activeGameColor =
+                        installedGames.getOrNull(pagerState.currentPage)?.getPrimaryColor()
+                            ?: Color.White
 
                     Box(
                         modifier = Modifier
@@ -535,13 +789,20 @@ private fun GameGridCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(2.dp))
-                val categoryStrings = game.customCategories + if (game.category.displayNameRes != 0) {
-                    listOf(stringResource(game.category.displayNameRes))
-                } else emptyList()
+                val lastPlayedText = if (game.lastPlayed > 0) {
+                    DateUtils.getRelativeTimeSpanString(
+                        game.lastPlayed,
+                        System.currentTimeMillis(),
+                        DateUtils.MINUTE_IN_MILLIS
+                    ).toString()
+                } else {
+                    "Never played"
+                }
+
                 Text(
-                    text = categoryStrings.joinToString(" · "),
+                    text = lastPlayedText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

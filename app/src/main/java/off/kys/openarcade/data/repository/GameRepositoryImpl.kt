@@ -1,5 +1,6 @@
 package off.kys.openarcade.data.repository
 
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.compose.ui.graphics.toArgb
@@ -10,6 +11,7 @@ import off.kys.openarcade.data.local.dao.GameDao
 import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.repository.GameRepository
 import off.kys.openarcade.util.ColorExtractor
+import java.util.Calendar
 
 class GameRepositoryImpl(
     private val context: Context,
@@ -48,12 +50,22 @@ class GameRepositoryImpl(
         val scannedGames = GameScanner.fetchInstalledGames(context)
         val existingGames = gameDao.getAllGamesSync()
 
+        // Fetch usage stats
+        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.YEAR, -1)
+        val stats = usageStatsManager.queryAndAggregateUsageStats(calendar.timeInMillis, System.currentTimeMillis())
+
         val entities = scannedGames.map { scanned ->
             val existing = existingGames.find { it.packageName == scanned.packageName }
+            val usage = stats[scanned.packageName]
+            
             scanned.copy(
                 category = existing?.category ?: scanned.category,
                 customCategories = existing?.customCategories ?: emptyList(),
-                primaryColorArgb = ColorExtractor.extractPrimaryColor(scanned.icon).toArgb()
+                primaryColorArgb = ColorExtractor.extractPrimaryColor(scanned.icon).toArgb(),
+                lastPlayed = usage?.lastTimeUsed ?: 0L,
+                totalPlayTime = usage?.totalTimeInForeground ?: 0L
             )
         }
         

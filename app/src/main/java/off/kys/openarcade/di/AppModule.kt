@@ -34,7 +34,11 @@ val appModule = module {
     factory { GetGameByPackageUseCase(get()) }
     factory { UpdateGameCategoryUseCase(get()) }
 
-    viewModel { GamesLauncherViewModel(get(), get()) }
+    viewModel { GamesLauncherViewModel(
+        application = androidApplication(),
+        refreshGamesUseCase = get(),
+        getGamesUseCase = get()
+    ) }
 
     viewModel { (packageName: String) ->
         GameDetailViewModel(
