@@ -2,6 +2,7 @@ package off.kys.openarcade.ui.launcher.components
 
 import android.text.format.DateUtils
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import off.kys.openarcade.R
 import off.kys.openarcade.domain.model.GameEntry
+import off.kys.openarcade.util.ColorExtractor
 
 @Composable
 fun GameGridCard(
@@ -35,6 +37,10 @@ fun GameGridCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDark = isSystemInDarkTheme()
+    val adaptivePrimary = ColorExtractor.getAdaptiveColor(game.getPrimaryColor(), isDark)
+    val adaptiveTertiary = ColorExtractor.getAdaptiveColor(game.getTertiaryColor(), isDark)
+
     OutlinedCard(
         onClick = onClick,
         colors = CardDefaults.outlinedCardColors(
@@ -43,7 +49,7 @@ fun GameGridCard(
         border = CardDefaults.outlinedCardBorder().copy(
             brush = Brush.linearGradient(
                 listOf(
-                    game.getTertiaryColor(alpha = 0.45f),
+                    adaptiveTertiary.copy(alpha = 0.45f),
                     Color.Transparent
                 )
             )
@@ -59,8 +65,8 @@ fun GameGridCard(
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                game.getPrimaryColor(alpha = 0.18f),
-                                game.getPrimaryColor(alpha = 0.04f)
+                                adaptivePrimary.copy(alpha = 0.18f),
+                                adaptivePrimary.copy(alpha = 0.04f)
                             )
                         )
                     ),
@@ -91,8 +97,8 @@ fun GameGridCard(
                     .background(
                         Brush.horizontalGradient(
                             listOf(
-                                game.getPrimaryColor(alpha = 0.70f),
-                                game.getTertiaryColor(alpha = 0.35f),
+                                adaptivePrimary.copy(alpha = 0.70f),
+                                adaptiveTertiary.copy(alpha = 0.35f),
                                 Color.Transparent
                             )
                         )

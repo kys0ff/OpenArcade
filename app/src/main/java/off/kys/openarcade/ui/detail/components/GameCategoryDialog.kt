@@ -1,6 +1,7 @@
 package off.kys.openarcade.ui.detail.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import off.kys.openarcade.R
 import off.kys.openarcade.ui.components.SectionHeader
+import off.kys.openarcade.util.ColorExtractor
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -45,6 +48,11 @@ fun GameCategoryDialog(
     onSave: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
+    val adaptiveAccentColor = remember(accentColor, isDark) {
+        ColorExtractor.getAdaptiveColor(accentColor, isDark)
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -66,7 +74,7 @@ fun GameCategoryDialog(
                 if (editingCategories.isNotEmpty()) {
                     SectionHeader(
                         title = stringResource(R.string.game_detail_custom_tags_label),
-                        accentColor = accentColor,
+                        accentColor = adaptiveAccentColor,
                         modifier = Modifier.fillMaxWidth()
                     )
                     
@@ -78,7 +86,7 @@ fun GameCategoryDialog(
                         editingCategories.forEach { category ->
                             EditableCategoryTag(
                                 category = category,
-                                accentColor = accentColor,
+                                accentColor = adaptiveAccentColor,
                                 onRemove = { onRemoveCategory(category) }
                             )
                         }
@@ -102,9 +110,9 @@ fun GameCategoryDialog(
                     shape = MaterialTheme.shapes.large,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = accentColor,
-                        focusedLabelColor = accentColor,
-                        cursorColor = accentColor
+                        focusedBorderColor = adaptiveAccentColor,
+                        focusedLabelColor = adaptiveAccentColor,
+                        cursorColor = adaptiveAccentColor
                     ),
                     trailingIcon = {
                         IconButton(
@@ -114,7 +122,7 @@ fun GameCategoryDialog(
                             Icon(
                                 painter = painterResource(R.drawable.round_add_24),
                                 contentDescription = stringResource(R.string.game_detail_add_tag_desc),
-                                tint = if (newCategoryDraft.isNotBlank()) accentColor else MaterialTheme.colorScheme.outline
+                                tint = if (newCategoryDraft.isNotBlank()) adaptiveAccentColor else MaterialTheme.colorScheme.outline
                             )
                         }
                     }
@@ -124,7 +132,7 @@ fun GameCategoryDialog(
         confirmButton = {
             TextButton(
                 onClick = onSave,
-                colors = ButtonDefaults.textButtonColors(contentColor = accentColor)
+                colors = ButtonDefaults.textButtonColors(contentColor = adaptiveAccentColor)
             ) {
                 Text(
                     stringResource(R.string.game_detail_save),

@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,6 +62,7 @@ import off.kys.openarcade.ui.components.SectionHeader
 import off.kys.openarcade.ui.detail.components.CategoryDetailRow
 import off.kys.openarcade.ui.detail.components.DetailRow
 import off.kys.openarcade.ui.detail.components.GameCategoryDialog
+import off.kys.openarcade.util.ColorExtractor
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -74,10 +76,17 @@ class GameDetailScreen(val packageName: String) : Screen {
         val uiState by viewModel.uiState.collectAsState()
 
         uiState.game?.let { currentGame ->
-            val dominantColor = currentGame.getPrimaryColor()
+            val isDark = isSystemInDarkTheme()
+            val dominantColor = remember(currentGame.primaryColorArgb, isDark) {
+                ColorExtractor.getAdaptiveColor(currentGame.getPrimaryColor(), isDark)
+            }
             val onDominantColor = currentGame.getOnPrimaryColor()
-            val secondaryColor = currentGame.getSecondaryColor()
-            val tertiaryColor = currentGame.getTertiaryColor()
+            val secondaryColor = remember(currentGame.secondaryColorArgb, isDark) {
+                ColorExtractor.getAdaptiveColor(currentGame.getSecondaryColor(), isDark)
+            }
+            val tertiaryColor = remember(currentGame.tertiaryColorArgb, isDark) {
+                ColorExtractor.getAdaptiveColor(currentGame.getTertiaryColor(), isDark)
+            }
 
             val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
             val scrollState = rememberScrollState()

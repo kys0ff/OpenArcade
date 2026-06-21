@@ -4,6 +4,7 @@ import android.graphics.Canvas
 import android.graphics.drawable.Drawable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.createBitmap
 import androidx.palette.graphics.Palette
 
@@ -33,5 +34,24 @@ object ColorExtractor {
         )
         
         return Color(colorInt)
+    }
+
+    fun getAdaptiveColor(color: Color, isDark: Boolean): Color {
+        val hsl = FloatArray(3)
+        ColorUtils.colorToHSL(color.toArgb(), hsl)
+
+        if (isDark) {
+            // In dark theme, if the color is too dark, lighten it
+            if (hsl[2] < 0.65f) {
+                hsl[2] = 0.65f
+            }
+        } else {
+            // In light theme, if the color is too light, darken it
+            if (hsl[2] > 0.45f) {
+                hsl[2] = 0.45f
+            }
+        }
+
+        return Color(ColorUtils.HSLToColor(hsl))
     }
 }

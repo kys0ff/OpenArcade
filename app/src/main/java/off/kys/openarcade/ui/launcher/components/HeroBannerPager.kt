@@ -3,6 +3,7 @@ package off.kys.openarcade.ui.launcher.components
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import off.kys.openarcade.R
 import off.kys.openarcade.domain.model.GameEntry
+import off.kys.openarcade.util.ColorExtractor
 import kotlin.math.absoluteValue
 
 @Composable
@@ -48,6 +50,7 @@ fun HeroBannerPager(
     installedGames: List<GameEntry>,
     onInspectGame: (String) -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
     val pagerCount = minOf(installedGames.size, 5)
     val pagerState = rememberPagerState { pagerCount }
 
@@ -144,7 +147,9 @@ fun HeroBannerPager(
 
                 FloatingActionButton(
                     onClick = { onInspectGame(game.packageName) },
-                    containerColor = game.getPrimaryColor(),
+                    containerColor = remember(game.primaryColorArgb, isDark) {
+                        ColorExtractor.getAdaptiveColor(game.getPrimaryColor(), isDark)
+                    },
                     contentColor = game.getOnPrimaryColor(),
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -172,9 +177,11 @@ fun HeroBannerPager(
                         animationSpec = tween(250),
                         label = "dotWidth"
                     )
-                    val activeGameColor =
-                        installedGames.getOrNull(pagerState.currentPage)?.getPrimaryColor()
+                    val activeGameColor = remember(pagerState.currentPage, isDark) {
+                        val color = installedGames.getOrNull(pagerState.currentPage)?.getPrimaryColor()
                             ?: Color.White
+                        ColorExtractor.getAdaptiveColor(color, isDark)
+                    }
 
                     Box(
                         modifier = Modifier

@@ -2,6 +2,7 @@ package off.kys.openarcade.ui.detail.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -20,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,6 +30,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import off.kys.openarcade.R
+import off.kys.openarcade.util.ColorExtractor
 
 /**
  * Custom Detail Row built specifically to house responsive tags inside FlowRow.
@@ -42,6 +45,11 @@ fun CategoryDetailRow(
     isLast: Boolean,
     onClick: () -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
+    val adaptiveAccentColor = remember(accentColor, isDark) {
+        ColorExtractor.getAdaptiveColor(accentColor, isDark)
+    }
+
     val topRadius = if (isFirst) 12.dp else 4.dp
     val bottomRadius = if (isLast) 12.dp else 4.dp
     val shape = RoundedCornerShape(
@@ -83,7 +91,7 @@ fun CategoryDetailRow(
                         Box(
                             modifier = Modifier
                                 .background(
-                                    color = accentColor.copy(alpha = 0.12f),
+                                    color = adaptiveAccentColor.copy(alpha = 0.12f),
                                     shape = RoundedCornerShape(6.dp)
                                 )
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -91,7 +99,7 @@ fun CategoryDetailRow(
                             Text(
                                 text = category,
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
-                                color = accentColor
+                                color = adaptiveAccentColor
                             )
                         }
                     }
@@ -102,7 +110,7 @@ fun CategoryDetailRow(
                 Icon(
                     painter = painterResource(R.drawable.round_chevron_left_24),
                     contentDescription = null,
-                    tint = accentColor.copy(alpha = 0.45f),
+                    tint = adaptiveAccentColor.copy(alpha = 0.45f),
                     modifier = Modifier
                         .padding(top = 6.dp)
                         .size(15.dp)
