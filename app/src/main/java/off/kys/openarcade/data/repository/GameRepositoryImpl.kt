@@ -6,7 +6,7 @@ import android.content.pm.PackageManager
 import androidx.compose.ui.graphics.toArgb
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import off.kys.openarcade.GameScanner
+import off.kys.openarcade.util.GameScanner
 import off.kys.openarcade.data.local.dao.GameDao
 import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.repository.GameRepository

@@ -1,4 +1,4 @@
-package off.kys.openarcade
+package off.kys.openarcade.util
 
 import android.content.Context
 import android.content.Intent
@@ -17,7 +17,7 @@ object GameScanner {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
 
-        val launchables = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val launcherActivities = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
         } else {
             @Suppress("DEPRECATION")
@@ -26,11 +26,9 @@ object GameScanner {
 
         val detectedGames = mutableListOf<GameEntry>()
 
-        for (resolveInfo in launchables) {
+        for (resolveInfo in launcherActivities) {
             val activityInfo = resolveInfo.activityInfo
             val appInfo = activityInfo.applicationInfo
-
-            // Check if application flags or category label it as a game
             val isGame = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 appInfo.category == ApplicationInfo.CATEGORY_GAME
             } else {
@@ -43,12 +41,11 @@ object GameScanner {
                 val icon = appInfo.loadIcon(pm)
                 val packageName = appInfo.packageName
 
-                // Extract colors using Palette
                 val palette = Palette.from(icon.toBitmap()).generate()
                 val primarySwatch = palette.vibrantSwatch ?: palette.dominantSwatch
                 val secondarySwatch = palette.mutedSwatch ?: palette.lightVibrantSwatch
                 val tertiarySwatch = palette.darkVibrantSwatch ?: palette.darkMutedSwatch
-                
+
                 val primaryColor = primarySwatch?.rgb ?: 0xFF2A2A2A.toInt()
                 val onPrimaryColor = primarySwatch?.titleTextColor ?: 0xFFFFFFFF.toInt()
                 val secondaryColor = secondarySwatch?.rgb ?: primaryColor

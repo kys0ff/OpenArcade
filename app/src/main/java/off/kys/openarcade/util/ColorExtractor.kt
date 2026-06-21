@@ -26,7 +26,6 @@ object ColorExtractor {
 
         val palette = Palette.from(bitmap).generate()
         
-        // Try to get dominant, then vibrant, then muted, then fallback
         val colorInt = palette.getDominantColor(
             palette.getVibrantColor(
                 palette.getMutedColor(Color(0xFF2A2A2A).toArgb())
@@ -41,12 +40,10 @@ object ColorExtractor {
         ColorUtils.colorToHSL(color.toArgb(), hsl)
 
         if (isDark) {
-            // In dark theme, if the color is too dark, lighten it
             if (hsl[2] < 0.65f) {
                 hsl[2] = 0.65f
             }
         } else {
-            // In light theme, if the color is too light, darken it
             if (hsl[2] > 0.45f) {
                 hsl[2] = 0.45f
             }
