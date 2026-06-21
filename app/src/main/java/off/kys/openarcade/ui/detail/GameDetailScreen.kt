@@ -42,7 +42,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -56,6 +55,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil.compose.AsyncImage
+import com.skydoves.cloudy.cloudy
 import off.kys.openarcade.R
 import off.kys.openarcade.ui.components.LoadingScreen
 import off.kys.openarcade.ui.components.SectionHeader
@@ -177,7 +177,7 @@ class GameDetailScreen(val packageName: String) : Screen {
                             Box(
                                 modifier = Modifier
                                     .size(172.dp)
-                                    .blur(32.dp)
+                                    .cloudy(radius = 40)
                                     .background(
                                         brush = Brush.radialGradient(
                                             colors = listOf(
