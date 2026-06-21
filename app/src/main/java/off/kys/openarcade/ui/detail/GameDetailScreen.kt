@@ -8,12 +8,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,44 +19,31 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -67,25 +51,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import coil.compose.AsyncImage
 import off.kys.openarcade.R
+import off.kys.openarcade.ui.components.LoadingScreen
+import off.kys.openarcade.ui.components.SectionHeader
+import off.kys.openarcade.ui.detail.components.CategoryDetailRow
+import off.kys.openarcade.ui.detail.components.DetailRow
+import off.kys.openarcade.ui.detail.components.GameCategoryDialog
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 class GameDetailScreen(val packageName: String) : Screen {
 
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val viewModel: GameDetailViewModel = koinViewModel { parametersOf(packageName) }
-        val game by viewModel.gameState.collectAsState()
+        val uiState by viewModel.uiState.collectAsState()
 
-        game?.let { currentGame ->
+        uiState.game?.let { currentGame ->
             val dominantColor = currentGame.getPrimaryColor()
             val onDominantColor = currentGame.getOnPrimaryColor()
             val secondaryColor = currentGame.getSecondaryColor()
@@ -93,12 +81,6 @@ class GameDetailScreen(val packageName: String) : Screen {
 
             val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
             val scrollState = rememberScrollState()
-
-            var showCategoryDialog by remember { mutableStateOf(false) }
-            var newCategoryText by remember { mutableStateOf("") }
-            val currentCategories = remember(currentGame.customCategories) {
-                mutableStateListOf<String>().apply { addAll(currentGame.customCategories) }
-            }
 
             val infiniteTransition = rememberInfiniteTransition(label = "halo_pulse")
             val haloAlpha by infiniteTransition.animateFloat(
@@ -111,91 +93,19 @@ class GameDetailScreen(val packageName: String) : Screen {
                 label = "haloAlpha"
             )
 
-            if (showCategoryDialog) {
-                AlertDialog(
-                    onDismissRequest = { showCategoryDialog = false },
-                    title = {
-                        Text(
-                            text = "Categories",
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                    },
-                    text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            if (currentCategories.isNotEmpty()) {
-                                Text(
-                                    text = "Custom tags",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    currentCategories.forEach { category ->
-                                        InputChip(
-                                            selected = true,
-                                            onClick = { currentCategories.remove(category) },
-                                            label = { Text(category) },
-                                            trailingIcon = {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.round_close_24),
-                                                    contentDescription = "Remove $category",
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
-                                        )
-                                    }
-                                }
-                                HorizontalDivider()
-                            } else {
-                                Text(
-                                    text = "No custom tags yet — add one below.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                            }
-
-                            OutlinedTextField(
-                                value = newCategoryText,
-                                onValueChange = { newCategoryText = it },
-                                label = { Text("New tag") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                trailingIcon = {
-                                    IconButton(
-                                        onClick = {
-                                            val trimmed = newCategoryText.trim()
-                                            if (trimmed.isNotBlank() && trimmed !in currentCategories) {
-                                                currentCategories.add(trimmed)
-                                                newCategoryText = ""
-                                            }
-                                        },
-                                        enabled = newCategoryText.isNotBlank()
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.round_add_24),
-                                            contentDescription = "Add tag"
-                                        )
-                                    }
-                                }
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            viewModel.updateCategories(currentCategories.toList())
-                            showCategoryDialog = false
-                        }) { Text("Save") }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showCategoryDialog = false }) { Text("Cancel") }
-                    }
+            if (uiState.showCategoryDialog) {
+                GameCategoryDialog(
+                    editingCategories = uiState.editingCategories,
+                    newCategoryDraft = uiState.newCategoryDraft,
+                    accentColor = tertiaryColor,
+                    onUpdateNewCategoryDraft = { viewModel.onEvent(GameDetailUiEvent.UpdateNewCategoryDraft(it)) },
+                    onAddCategory = { viewModel.onEvent(GameDetailUiEvent.AddCategory(it)) },
+                    onRemoveCategory = { viewModel.onEvent(GameDetailUiEvent.RemoveCategory(it)) },
+                    onSave = { viewModel.onEvent(GameDetailUiEvent.SaveCategories) },
+                    onDismiss = { viewModel.onEvent(GameDetailUiEvent.CloseCategoryDialog) }
                 )
             }
 
-            // ─── Main Scaffold ────────────────────────────────────────────────
             Scaffold(
                 modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                 containerColor = MaterialTheme.colorScheme.background,
@@ -215,7 +125,7 @@ class GameDetailScreen(val packageName: String) : Screen {
                             IconButton(onClick = { navigator.pop() }) {
                                 Icon(
                                     painter = painterResource(R.drawable.round_arrow_back_24),
-                                    contentDescription = "Back"
+                                    contentDescription = stringResource(R.string.game_detail_back_desc)
                                 )
                             }
                         },
@@ -252,7 +162,6 @@ class GameDetailScreen(val packageName: String) : Screen {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
 
-                        // ─── Hero ─────────────────────────────────────────────
                         Spacer(Modifier.height(16.dp))
 
                         Box(contentAlignment = Alignment.Center) {
@@ -294,7 +203,7 @@ class GameDetailScreen(val packageName: String) : Screen {
                                 ) {
                                     AsyncImage(
                                         model = currentGame.icon,
-                                        contentDescription = "${currentGame.title} icon",
+                                        contentDescription = stringResource(R.string.game_detail_icon_desc, currentGame.title),
                                         modifier = Modifier.fillMaxSize(0.65f)
                                     )
                                 }
@@ -329,7 +238,6 @@ class GameDetailScreen(val packageName: String) : Screen {
 
                         Spacer(Modifier.height(32.dp))
 
-                        // ─── Action Row ───────────────────────────────────────
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -337,7 +245,7 @@ class GameDetailScreen(val packageName: String) : Screen {
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Button(
-                                onClick = { viewModel.launchGame() },
+                                onClick = { viewModel.onEvent(GameDetailUiEvent.LaunchGame) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(56.dp),
@@ -361,7 +269,7 @@ class GameDetailScreen(val packageName: String) : Screen {
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = if (currentGame.isInstalled) "Play" else "Not Installed",
+                                    text = if (currentGame.isInstalled) stringResource(R.string.game_detail_play) else stringResource(R.string.game_detail_not_installed),
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold
                                     )
@@ -373,7 +281,7 @@ class GameDetailScreen(val packageName: String) : Screen {
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 OutlinedButton(
-                                    onClick = { showCategoryDialog = true },
+                                    onClick = { viewModel.onEvent(GameDetailUiEvent.OpenCategoryDialog) },
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(44.dp),
@@ -393,7 +301,7 @@ class GameDetailScreen(val packageName: String) : Screen {
                                     )
                                     Spacer(Modifier.width(5.dp))
                                     Text(
-                                        text = "Tags",
+                                        text = stringResource(R.string.game_detail_tags_button),
                                         style = MaterialTheme.typography.labelLarge
                                     )
                                 }
@@ -402,9 +310,8 @@ class GameDetailScreen(val packageName: String) : Screen {
 
                         Spacer(Modifier.height(36.dp))
 
-                        // ─── Details Section ──────────────────────────────────
                         SectionHeader(
-                            title = "Details",
+                            title = stringResource(R.string.game_detail_section_details),
                             accentColor = secondaryColor,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -419,24 +326,23 @@ class GameDetailScreen(val packageName: String) : Screen {
                                 .padding(horizontal = 24.dp),
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            // Enhanced multicategory layout
                             val systemCategory = if (currentGame.category.displayNameRes != 0) {
                                 listOf(stringResource(currentGame.category.displayNameRes))
                             } else emptyList()
 
                             CategoryDetailRow(
-                                label = "Categories",
+                                label = stringResource(R.string.game_detail_label_categories),
                                 categories = remember(currentGame.customCategories, currentGame.category) {
                                     systemCategory + currentGame.customCategories
                                 },
                                 accentColor = tertiaryColor,
                                 isFirst = true,
                                 isLast = false,
-                                onClick = { showCategoryDialog = true }
+                                onClick = { viewModel.onEvent(GameDetailUiEvent.OpenCategoryDialog) }
                             )
 
                             DetailRow(
-                                label = "Status",
+                                label = stringResource(R.string.game_detail_label_status),
                                 value = if (currentGame.isInstalled) {
                                     stringResource(R.string.category_installed)
                                 } else {
@@ -453,7 +359,7 @@ class GameDetailScreen(val packageName: String) : Screen {
                             )
 
                             DetailRow(
-                                label = "Package",
+                                label = stringResource(R.string.game_detail_label_package),
                                 value = currentGame.packageName,
                                 valueColor = MaterialTheme.colorScheme.onSurface,
                                 isFirst = false,
@@ -468,221 +374,7 @@ class GameDetailScreen(val packageName: String) : Screen {
             }
 
         } ?: run {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 3.dp,
-                        modifier = Modifier.size(44.dp)
-                    )
-                    Text(
-                        text = "Loading…",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            LoadingScreen(message = stringResource(R.string.game_detail_loading))
         }
-    }
-}
-
-@Composable
-private fun SectionHeader(
-    title: String,
-    accentColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .width(3.dp)
-                .height(14.dp)
-                .background(
-                    color = accentColor,
-                    shape = MaterialTheme.shapes.extraSmall
-                )
-        )
-        Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.5.sp
-            ),
-            color = accentColor
-        )
-    }
-}
-
-/**
- * Custom Detail Row built specifically to house responsive tags inside FlowRow.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun CategoryDetailRow(
-    label: String,
-    categories: List<String>,
-    accentColor: Color,
-    isFirst: Boolean,
-    isLast: Boolean,
-    onClick: () -> Unit
-) {
-    val topRadius = if (isFirst) 12.dp else 4.dp
-    val bottomRadius = if (isLast) 12.dp else 4.dp
-    val shape = RoundedCornerShape(
-        topStart = topRadius, topEnd = topRadius,
-        bottomStart = bottomRadius, bottomEnd = bottomRadius
-    )
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onClick() }
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top // Align Top to handle wrapping gracefully
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp) // align with text labels inside row
-            )
-
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.Top
-            ) {
-                FlowRow(
-                    modifier = Modifier.widthIn(max = 220.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    categories.forEach { category ->
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    color = accentColor.copy(alpha = 0.12f),
-                                    shape = RoundedCornerShape(6.dp)
-                                )
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = category,
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
-                                color = accentColor
-                            )
-                        }
-                    }
-                }
-
-                Spacer(Modifier.width(6.dp))
-
-                Icon(
-                    painter = painterResource(R.drawable.round_chevron_left_24),
-                    contentDescription = null,
-                    tint = accentColor.copy(alpha = 0.45f),
-                    modifier = Modifier
-                        .padding(top = 6.dp)
-                        .size(15.dp)
-                        .graphicsLayer { scaleX = -1f }
-                )
-            }
-        }
-    }
-
-    if (!isLast) {
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            thickness = 0.5.dp
-        )
-    }
-}
-
-@Composable
-private fun DetailRow(
-    label: String,
-    value: String,
-    valueColor: Color,
-    isFirst: Boolean,
-    isLast: Boolean,
-    onClick: (() -> Unit)?
-) {
-    val topRadius = if (isFirst) 12.dp else 4.dp
-    val bottomRadius = if (isLast) 12.dp else 4.dp
-    val shape = RoundedCornerShape(
-        topStart = topRadius, topEnd = topRadius,
-        bottomStart = bottomRadius, bottomEnd = bottomRadius
-    )
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
-                .padding(horizontal = 16.dp, vertical = 15.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = valueColor,
-                    textAlign = TextAlign.End,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = 200.dp)
-                )
-                if (onClick != null) {
-                    Icon(
-                        painter = painterResource(R.drawable.round_chevron_left_24),
-                        contentDescription = null,
-                        tint = valueColor.copy(alpha = 0.45f),
-                        modifier = Modifier
-                            .size(15.dp)
-                            .graphicsLayer { scaleX = -1f }
-                    )
-                }
-            }
-        }
-    }
-
-    if (!isLast) {
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            thickness = 0.5.dp
-        )
     }
 }

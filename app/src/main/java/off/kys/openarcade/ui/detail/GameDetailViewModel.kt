@@ -2,13 +2,14 @@ package off.kys.openarcade.ui.detail
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.application
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.usecase.GetGameByPackageUseCase
 import off.kys.openarcade.domain.usecase.UpdateGameCategoryUseCase
 
@@ -19,25 +20,68 @@ class GameDetailViewModel(
     private val updateGameCategoryUseCase: UpdateGameCategoryUseCase
 ) : AndroidViewModel(application) {
 
-    val gameState: StateFlow<GameEntry?> = getGameByPackageUseCase(packageName)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
-        )
+    private val _uiState = MutableStateFlow(GameDetailUiState())
+    val uiState: StateFlow<GameDetailUiState> = combine(
+        getGameByPackageUseCase(packageName),
+        _uiState
+    ) { game, state ->
+        state.copy(game = game)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = GameDetailUiState()
+    )
 
-    fun launchGame() {
-        val launchIntent = application.packageManager.getLaunchIntentForPackage(packageName)
-        if (launchIntent != null) {
-            application.startActivity(launchIntent)
-        } else {
-            // Log error or handle failure
+    fun onEvent(event: GameDetailUiEvent) {
+        when (event) {
+            is GameDetailUiEvent.LaunchGame -> launchGame()
+            is GameDetailUiEvent.OpenCategoryDialog -> _uiState.update {
+                it.copy(
+                    showCategoryDialog = true,
+                    editingCategories = it.game?.customCategories ?: emptyList(),
+                    newCategoryDraft = ""
+                )
+            }
+
+            is GameDetailUiEvent.CloseCategoryDialog -> _uiState.update { it.copy(showCategoryDialog = false) }
+            is GameDetailUiEvent.AddCategory -> _uiState.update { state ->
+                val trimmed = event.category.trim()
+                if (trimmed.isNotBlank() && trimmed !in state.editingCategories) {
+                    state.copy(
+                        editingCategories = state.editingCategories + trimmed,
+                        newCategoryDraft = ""
+                    )
+                } else state
+            }
+
+            is GameDetailUiEvent.RemoveCategory -> _uiState.update { state ->
+                state.copy(
+                    editingCategories = state.editingCategories - event.category
+                )
+            }
+
+            is GameDetailUiEvent.UpdateNewCategoryDraft -> _uiState.update {
+                it.copy(
+                    newCategoryDraft = event.text
+                )
+            }
+
+            is GameDetailUiEvent.SaveCategories -> saveCategories()
         }
     }
 
-    fun updateCategories(categories: List<String>) {
+    private fun launchGame() {
+        val application = getApplication<Application>()
+        val launchIntent = application.packageManager.getLaunchIntentForPackage(packageName)
+        if (launchIntent != null) {
+            application.startActivity(launchIntent)
+        }
+    }
+
+    private fun saveCategories() {
         viewModelScope.launch {
-            updateGameCategoryUseCase(packageName, categories)
+            updateGameCategoryUseCase(packageName, _uiState.value.editingCategories)
+            _uiState.update { it.copy(showCategoryDialog = false) }
         }
     }
 }
