@@ -23,6 +23,7 @@
     <string name="play_time_hours_minutes">%1$dh %2$dm</string>
     <string name="play_time_minutes">%1$dm</string>
     <string name="recent_activity">Recent Activity</string>
+    <string name="favorites">Favorites</string>
     <string name="your_library">Your library</string>
     <string name="games_count">%1$d games</string>
     <string name="play_game">Play %1$s</string>
@@ -54,4 +55,22 @@
     <string name="sort_last_played">Last played</string>
     <string name="sort_play_time">Total play time</string>
     <string name="sort_button_desc">Sort games</string>
+    <string name="add_games_desc">Add games to collection</string>
+    <string name="menu_remove_from_collection">Remove from collection</string>
+    <string name="menu_restore_to_collection">Restore to collection</string>
+    <string name="menu_pin_to_favorites">Pin to favorites</string>
+    <string name="menu_unpin_from_favorites">Unpin from favorites</string>
+    <string name="menu_app_info">App info</string>
+    <string name="menu_uninstall">Uninstall</string>
+    <string name="menu_rename">Rename</string>
+    <string name="menu_change_icon">Change icon</string>
+    <string name="menu_restore_default_name">Restore default name</string>
+    <string name="menu_restore_default_icon">Restore default icon</string>
+    <string name="rename_dialog_title">Rename game</string>
+    <string name="rename_dialog_label">Game title</string>
+    <string name="rename_dialog_save">Rename</string>
+    <string name="add_to_launcher_title">Add to Launcher</string>
+    <string name="search_apps">Search apps…</string>
+    <string name="add_selected">Add Selected</string>
+    <string name="filter_hidden">Hidden</string>
 </resources>

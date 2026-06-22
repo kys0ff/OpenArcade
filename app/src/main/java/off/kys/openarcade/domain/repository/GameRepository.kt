@@ -10,4 +10,9 @@ interface GameRepository {
     suspend fun refreshGameStats(packageName: String)
     suspend fun refreshAllGameStats()
     suspend fun updateCustomCategories(packageName: String, customCategories: List<String>)
+    suspend fun updateFavoriteStatus(packageName: String, isFavorite: Boolean)
+    suspend fun updateCustomTitle(packageName: String, customTitle: String?)
+    suspend fun updateCustomIconPath(packageName: String, customIconPath: String?)
+    suspend fun updateVisibility(packageName: String, isHidden: Boolean)
+    suspend fun addGame(game: GameEntry)
 }

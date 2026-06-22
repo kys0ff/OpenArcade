@@ -29,7 +29,7 @@ import off.kys.openarcade.R
 import off.kys.openarcade.domain.model.GameEntry
 
 @Composable
-fun RecentActivitySection(
+fun FavoritesSection(
     games: List<GameEntry>,
     onGameClick: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -43,11 +43,11 @@ fun RecentActivitySection(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = stringResource(R.string.recent_activity),
+                text = stringResource(R.string.favorites),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
             )
             Icon(
-                painter = painterResource(R.drawable.round_history_24),
+                painter = painterResource(R.drawable.round_favorite_24),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
@@ -57,7 +57,7 @@ fun RecentActivitySection(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(bottom = 4.dp)
         ) {
-            items(games, key = { "recent_${it.packageName}" }) { game ->
+            items(games, key = { "fav_${it.packageName}" }) { game ->
                 Card(
                     onClick = { onGameClick(game.packageName) },
                     modifier = Modifier.size(64.dp),

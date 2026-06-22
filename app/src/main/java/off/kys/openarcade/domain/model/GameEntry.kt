@@ -22,8 +22,16 @@ data class GameEntry(
     val customCategories: List<String> = emptyList(),
     val lastPlayed: Long = 0,
     val totalPlayTime: Long = 0,
+    val isFavorite: Boolean = false,
+    val customTitle: String? = null,
+    val customIconPath: String? = null,
+    val isHidden: Boolean = false,
+    val isManuallyAdded: Boolean = false,
     @Ignore @Transient val icon: Drawable? = null
 ) {
+    val displayName: String
+        get() = customTitle ?: title
+
     // Required constructor for Room when using @Ignore on properties
     constructor(
         packageName: String,
@@ -36,7 +44,12 @@ data class GameEntry(
         tertiaryColorArgb: Int,
         customCategories: List<String> = emptyList(),
         lastPlayed: Long = 0,
-        totalPlayTime: Long = 0
+        totalPlayTime: Long = 0,
+        isFavorite: Boolean = false,
+        customTitle: String? = null,
+        customIconPath: String? = null,
+        isHidden: Boolean = false,
+        isManuallyAdded: Boolean = false
     ) : this(
         packageName,
         title,
@@ -49,6 +62,11 @@ data class GameEntry(
         customCategories,
         lastPlayed,
         totalPlayTime,
+        isFavorite,
+        customTitle,
+        customIconPath,
+        isHidden,
+        isManuallyAdded,
         null
     )
 

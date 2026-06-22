@@ -6,6 +6,7 @@ import off.kys.openarcade.domain.model.GameSortOption
 
 data class GamesLauncherUiState(
     val filteredGames: List<GameEntry> = emptyList(),
+    val favoriteGames: List<GameEntry> = emptyList(),
     val recentGames: List<GameEntry> = emptyList(),
     val filters: List<GameFilter> = listOf(GameFilter.All),
     val selectedFilter: GameFilter = GameFilter.All,

@@ -63,6 +63,7 @@ fun FilterChipsRow(
                     is GameFilter.Uninstalled -> "uninstalled"
                     is GameFilter.System -> "system_${filter.category.name}"
                     is GameFilter.Custom -> "custom_${filter.name}"
+                    is GameFilter.Hidden -> "hidden"
                 }
             }
         ) { index ->
@@ -75,6 +76,7 @@ fun FilterChipsRow(
                     is GameFilter.Uninstalled -> stringResource(R.string.category_uninstalled)
                     is GameFilter.System -> stringResource(filter.category.displayNameRes)
                     is GameFilter.Custom -> filter.name
+                    is GameFilter.Hidden -> stringResource(R.string.filter_hidden)
                 },
                 selected = uiState.selectedFilter == filter,
                 onClick = { onFilterSelected(filter) }
@@ -90,7 +92,7 @@ private val ChipIconSpacing = 4.dp
 private const val AnimDuration = 200
 
 @Composable
-private fun ArcadeFilterChip(
+fun ArcadeFilterChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,

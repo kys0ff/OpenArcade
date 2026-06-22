@@ -23,9 +23,11 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import off.kys.openarcade.ui.app_picker.AppPickerScreen
 import off.kys.openarcade.ui.detail.GameDetailScreen
 import off.kys.openarcade.ui.launcher.components.AnalyticsSection
 import off.kys.openarcade.ui.launcher.components.EmptyGamesState
+import off.kys.openarcade.ui.launcher.components.FavoritesSection
 import off.kys.openarcade.ui.launcher.components.FilterChipsRow
 import off.kys.openarcade.ui.launcher.components.GameGridCard
 import off.kys.openarcade.ui.launcher.components.HeroBannerPager
@@ -111,6 +113,18 @@ class GamesLauncherScreen : Screen {
                         AnalyticsSection(uiState.filteredGames)
                     }
 
+                    if (uiState.favoriteGames.isNotEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            FavoritesSection(
+                                games = uiState.favoriteGames,
+                                onGameClick = { pkg ->
+                                    viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
+                                    navigator.push(GameDetailScreen(pkg))
+                                }
+                            )
+                        }
+                    }
+
                     if (uiState.recentGames.isNotEmpty()) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             RecentActivitySection(
@@ -130,6 +144,9 @@ class GamesLauncherScreen : Screen {
                                 selectedSort = uiState.selectedSort,
                                 onSortSelected = { sort ->
                                     viewModel.onEvent(GamesLauncherUiEvent.SortSelected(sort))
+                                },
+                                onAddGamesClick = {
+                                    navigator.push(AppPickerScreen())
                                 }
                             )
                         }
@@ -141,7 +158,8 @@ class GamesLauncherScreen : Screen {
                             onClick = {
                                 viewModel.onEvent(GamesLauncherUiEvent.GameClicked(game.packageName))
                                 navigator.push(GameDetailScreen(game.packageName))
-                            }
+                            },
+                            onEvent = { viewModel.onEvent(it) }
                         )
                     }
                 }

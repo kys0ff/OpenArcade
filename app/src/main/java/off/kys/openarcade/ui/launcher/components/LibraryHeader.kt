@@ -31,6 +31,7 @@ fun LibraryHeader(
     gameCount: Int,
     selectedSort: GameSortOption,
     onSortSelected: (GameSortOption) -> Unit,
+    onAddGamesClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var sortMenuExpanded by remember { mutableStateOf(false) }
@@ -53,6 +54,20 @@ fun LibraryHeader(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.weight(1f))
+
+        IconButton(
+            onClick = onAddGamesClick,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.round_add_24),
+                contentDescription = stringResource(R.string.add_games_desc),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(Modifier.width(8.dp))
 
         Box {
             IconButton(

@@ -92,7 +92,7 @@ fun GameDetailContent(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GameDetailTopAppBar(
-                title = currentGame.title,
+                title = currentGame.displayName,
                 onBackClick = { navigator.pop() },
                 scrollBehavior = scrollBehavior
             )

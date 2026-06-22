@@ -37,8 +37,9 @@ class GamesLauncherViewModel(
     private val application: Application,
     private val refreshGamesUseCase: RefreshGamesUseCase,
     private val refreshAllGameStatsUseCase: RefreshAllGameStatsUseCase,
-    getGamesUseCase: GetGamesUseCase,
-    private val prefs: ArcadePreferences
+    private val gameRepository: off.kys.openarcade.domain.repository.GameRepository,
+    private val prefs: ArcadePreferences,
+    getGamesUseCase: GetGamesUseCase
 ) : ViewModel() {
 
     private val selectedFilter = MutableStateFlow<GameFilter>(GameFilter.All)
@@ -57,6 +58,9 @@ class GamesLauncherViewModel(
             filters.add(GameFilter.Installed)
             if (games.any { !it.isInstalled }) {
                 filters.add(GameFilter.Uninstalled)
+            }
+            if (games.any { it.isHidden }) {
+                filters.add(GameFilter.Hidden)
             }
         }
 
@@ -96,21 +100,26 @@ class GamesLauncherViewModel(
     ) { gameData, deviceData ->
         val (all, filters, selected, sort) = gameData
         val (battery, storage, permission, loading) = deviceData
+        val visibleGames = all.filter { !it.isHidden }
 
         val filtered = when (selected) {
-            is GameFilter.All -> all
-            is GameFilter.Installed -> all.filter { it.isInstalled }
-            is GameFilter.Uninstalled -> all.filter { !it.isInstalled }
-            is GameFilter.System -> all.filter { it.category == selected.category }
-            is GameFilter.Custom -> all.filter { selected.name in it.customCategories }
+            is GameFilter.All -> visibleGames
+            is GameFilter.Installed -> visibleGames.filter { it.isInstalled }
+            is GameFilter.Uninstalled -> visibleGames.filter { !it.isInstalled }
+            is GameFilter.System -> visibleGames.filter { it.category == selected.category }
+            is GameFilter.Custom -> visibleGames.filter { selected.name in it.customCategories }
+            is GameFilter.Hidden -> all.filter { it.isHidden }
         }
 
         val sorted = when (sort) {
-            GameSortOption.TITLE_ASC -> filtered.sortedBy { it.title.lowercase() }
-            GameSortOption.TITLE_DESC -> filtered.sortedByDescending { it.title.lowercase() }
+            GameSortOption.TITLE_ASC -> filtered.sortedBy { it.displayName.lowercase() }
+            GameSortOption.TITLE_DESC -> filtered.sortedByDescending { it.displayName.lowercase() }
             GameSortOption.LAST_PLAYED -> filtered.sortedByDescending { it.lastPlayed }
             GameSortOption.TOTAL_PLAY_TIME -> filtered.sortedByDescending { it.totalPlayTime }
         }
+
+        val favorites = all.filter { it.isFavorite }
+            .sortedBy { it.displayName.lowercase() }
 
         val recent = all.filter { it.lastPlayed > 0 }
             .sortedByDescending { it.lastPlayed }
@@ -118,6 +127,7 @@ class GamesLauncherViewModel(
 
         GamesLauncherUiState(
             filteredGames = sorted,
+            favoriteGames = favorites,
             recentGames = recent,
             filters = filters,
             selectedFilter = selected,
@@ -191,6 +201,58 @@ class GamesLauncherViewModel(
 
         is GamesLauncherUiEvent.PermissionCheckRequested -> updatePermissionStatus()
         is GamesLauncherUiEvent.RefreshStats -> refreshStats()
+
+        is GamesLauncherUiEvent.FavoriteToggled -> {
+            viewModelScope.launch {
+                gameRepository.updateFavoriteStatus(event.packageName, event.isFavorite)
+            }
+        }
+
+        is GamesLauncherUiEvent.VisibilityToggled -> {
+            viewModelScope.launch {
+                gameRepository.updateVisibility(event.packageName, event.isHidden)
+            }
+        }
+
+        is GamesLauncherUiEvent.RenameRequested -> {
+            viewModelScope.launch {
+                gameRepository.updateCustomTitle(event.packageName, event.newTitle?.takeIf { it.isNotBlank() })
+            }
+        }
+
+        is GamesLauncherUiEvent.ChangeIconRequested -> {
+            viewModelScope.launch {
+                gameRepository.updateCustomIconPath(event.packageName, event.newIconPath)
+            }
+        }
+
+        is GamesLauncherUiEvent.AppInfoRequested -> {
+            // Handled by UI via intent
+        }
+
+        is GamesLauncherUiEvent.UninstallRequested -> {
+            // Handled by UI via intent
+        }
+
+        is GamesLauncherUiEvent.AddGamesRequested -> {
+            viewModelScope.launch {
+                event.packageNames.forEach { pkg ->
+                    gameRepository.addGame(
+                        GameEntry(
+                            packageName = pkg,
+                            title = "",
+                            category = GameCategory.UTILITY,
+                            primaryColorArgb = 0,
+                            onPrimaryColorArgb = 0,
+                            secondaryColorArgb = 0,
+                            tertiaryColorArgb = 0,
+                            isManuallyAdded = true
+                        )
+                    )
+                }
+                refreshGames()
+            }
+        }
     }
 
     private fun refreshGames() {

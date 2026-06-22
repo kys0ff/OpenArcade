@@ -11,7 +11,7 @@ import off.kys.openarcade.domain.model.GameCategory
 import off.kys.openarcade.domain.model.GameEntry
 
 object GameScanner {
-    fun fetchInstalledGames(context: Context): List<GameEntry> {
+    fun fetchInstalledGames(context: Context, extraPackages: List<String> = emptyList()): List<GameEntry> {
         val pm = context.packageManager
         val intent = Intent(Intent.ACTION_MAIN, null).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
@@ -36,15 +36,19 @@ object GameScanner {
                 (appInfo.flags and ApplicationInfo.FLAG_IS_GAME) != 0
             }
 
-            if (isGame) {
+            if (isGame || extraPackages.contains(appInfo.packageName)) {
                 val title = appInfo.loadLabel(pm).toString()
                 val icon = appInfo.loadIcon(pm)
                 val packageName = appInfo.packageName
 
-                val palette = Palette.from(icon.toBitmap()).generate()
-                val primarySwatch = palette.vibrantSwatch ?: palette.dominantSwatch
-                val secondarySwatch = palette.mutedSwatch ?: palette.lightVibrantSwatch
-                val tertiarySwatch = palette.darkVibrantSwatch ?: palette.darkMutedSwatch
+                val palette = try {
+                    Palette.from(icon.toBitmap()).generate()
+                } catch (_: Exception) {
+                    null
+                }
+                val primarySwatch = palette?.vibrantSwatch ?: palette?.dominantSwatch
+                val secondarySwatch = palette?.mutedSwatch ?: palette?.lightVibrantSwatch
+                val tertiarySwatch = palette?.darkVibrantSwatch ?: palette?.darkMutedSwatch
 
                 val primaryColor = primarySwatch?.rgb ?: 0xFF2A2A2A.toInt()
                 val onPrimaryColor = primarySwatch?.titleTextColor ?: 0xFFFFFFFF.toInt()
@@ -55,12 +59,13 @@ object GameScanner {
                     GameEntry(
                         packageName = packageName,
                         title = title,
-                        category = GameCategory.UNDEFINED,
+                        category = if (isGame) GameCategory.UNDEFINED else GameCategory.UTILITY,
                         isInstalled = true,
                         primaryColorArgb = primaryColor,
                         onPrimaryColorArgb = onPrimaryColor,
                         secondaryColorArgb = secondaryColor,
                         tertiaryColorArgb = tertiaryColor,
+                        isManuallyAdded = !isGame,
                         icon = icon
                     )
                 )

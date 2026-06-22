@@ -78,10 +78,10 @@ fun GameDetailHeader(
                     contentAlignment = Alignment.Center
                 ) {
                     AsyncImage(
-                        model = currentGame.icon,
+                        model = currentGame.customIconPath ?: currentGame.icon,
                         contentDescription = stringResource(
                             R.string.game_detail_icon_desc,
-                            currentGame.title
+                            currentGame.displayName
                         ),
                         modifier = Modifier.fillMaxSize(0.65f)
                     )
@@ -92,7 +92,7 @@ fun GameDetailHeader(
         Spacer(Modifier.height(20.dp))
 
         Text(
-            text = currentGame.title,
+            text = currentGame.displayName,
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onBackground,

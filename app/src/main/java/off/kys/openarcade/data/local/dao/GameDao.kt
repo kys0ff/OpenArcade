@@ -24,6 +24,21 @@ interface GameDao {
     @Query("UPDATE games SET lastPlayed = :lastPlayed, totalPlayTime = :totalPlayTime WHERE packageName = :packageName")
     suspend fun updatePlayStats(packageName: String, lastPlayed: Long, totalPlayTime: Long)
 
+    @Query("UPDATE games SET isFavorite = :isFavorite WHERE packageName = :packageName")
+    suspend fun updateFavoriteStatus(packageName: String, isFavorite: Boolean)
+
+    @Query("UPDATE games SET customTitle = :customTitle WHERE packageName = :packageName")
+    suspend fun updateCustomTitle(packageName: String, customTitle: String?)
+
+    @Query("UPDATE games SET customIconPath = :customIconPath WHERE packageName = :packageName")
+    suspend fun updateCustomIconPath(packageName: String, customIconPath: String?)
+
+    @Query("UPDATE games SET isHidden = :isHidden WHERE packageName = :packageName")
+    suspend fun updateVisibility(packageName: String, isHidden: Boolean)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGame(game: GameEntry)
+
     @Query("SELECT * FROM games")
     suspend fun getAllGamesSync(): List<GameEntry>
 

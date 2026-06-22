@@ -11,6 +11,7 @@ import off.kys.openarcade.domain.usecase.RefreshAllGameStatsUseCase
 import off.kys.openarcade.domain.usecase.RefreshGameStatsUseCase
 import off.kys.openarcade.domain.usecase.RefreshGamesUseCase
 import off.kys.openarcade.domain.usecase.UpdateGameCategoryUseCase
+import off.kys.openarcade.ui.app_picker.AppPickerViewModel
 import off.kys.openarcade.ui.detail.GameDetailViewModel
 import off.kys.openarcade.ui.launcher.GamesLauncherViewModel
 import org.koin.android.ext.koin.androidApplication
@@ -46,7 +47,14 @@ val appModule = module {
         refreshGamesUseCase = get(),
         refreshAllGameStatsUseCase = get(),
         getGamesUseCase = get(),
+        gameRepository = get(),
         prefs = get()
+    ) }
+
+    viewModel { AppPickerViewModel(
+        application = androidApplication(),
+        gameRepository = get(),
+        refreshGamesUseCase = get()
     ) }
 
     viewModel { (packageName: String) ->

@@ -14,15 +14,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
+import off.kys.openarcade.ui.components.ArcadeDialog
+import off.kys.openarcade.ui.components.ArcadeDialogButton
+import off.kys.openarcade.ui.components.ArcadeDialogDefaults.ButtonRole
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -53,23 +53,12 @@ fun GameCategoryDialog(
         ColorExtractor.getAdaptiveColor(accentColor, isDark)
     }
 
-    AlertDialog(
+    ArcadeDialog(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.extraLarge,
-        icon = {
-            Icon(
-                painter = painterResource(R.drawable.round_category_24),
-                contentDescription = null
-            )
-        },
-        title = {
-            Text(
-                text = stringResource(R.string.game_detail_categories_title),
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-            )
-        },
-        text = {
+        icon = painterResource(R.drawable.round_category_24),
+        iconTint = adaptiveAccentColor,
+        title = stringResource(R.string.game_detail_categories_title),
+        content = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 if (editingCategories.isNotEmpty()) {
                     SectionHeader(
@@ -77,7 +66,7 @@ fun GameCategoryDialog(
                         accentColor = adaptiveAccentColor,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    
+
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -129,22 +118,18 @@ fun GameCategoryDialog(
                 )
             }
         },
-        confirmButton = {
-            TextButton(
-                onClick = onSave,
-                colors = ButtonDefaults.textButtonColors(contentColor = adaptiveAccentColor)
-            ) {
-                Text(
-                    stringResource(R.string.game_detail_save),
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.game_detail_cancel))
-            }
-        }
+        buttons = listOf(
+            ArcadeDialogButton(
+                label = stringResource(R.string.game_detail_cancel),
+                role = ButtonRole.Secondary,
+                onClick = onDismiss
+            ),
+            ArcadeDialogButton(
+                label = stringResource(R.string.game_detail_save),
+                role = ButtonRole.Primary,
+                onClick = onSave
+            )
+        )
     )
 }
 

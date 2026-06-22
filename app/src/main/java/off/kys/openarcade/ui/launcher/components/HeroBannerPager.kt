@@ -85,7 +85,7 @@ fun HeroBannerPager(
                 )
 
                 AsyncImage(
-                    model = game.icon,
+                    model = game.customIconPath ?: game.icon,
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxSize()
@@ -133,7 +133,7 @@ fun HeroBannerPager(
                         .padding(start = 24.dp, end = 88.dp, bottom = 44.dp)
                 ) {
                     Text(
-                        text = game.title,
+                        text = game.displayName,
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -168,7 +168,7 @@ fun HeroBannerPager(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.round_play_arrow_24),
-                        contentDescription = stringResource(R.string.play_game, game.title)
+                        contentDescription = stringResource(R.string.play_game, game.displayName)
                     )
                 }
             }

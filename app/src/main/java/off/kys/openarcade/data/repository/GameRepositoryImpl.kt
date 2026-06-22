@@ -3,7 +3,9 @@ package off.kys.openarcade.data.repository
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -13,6 +15,7 @@ import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.repository.GameRepository
 import off.kys.openarcade.util.ColorExtractor
 import off.kys.openarcade.util.GameScanner
+import java.io.File
 import java.util.Calendar
 
 class GameRepositoryImpl(
@@ -49,8 +52,10 @@ class GameRepositoryImpl(
     }
 
     override suspend fun refreshGames() = withContext(Dispatchers.IO) {
-        val scannedGames = GameScanner.fetchInstalledGames(context)
         val existingGames = gameDao.getAllGamesSync()
+        val manuallyAdded = existingGames.filter { it.isManuallyAdded }.map { it.packageName }
+        
+        val scannedGames = GameScanner.fetchInstalledGames(context, manuallyAdded)
 
         // Fetch usage stats
         val stats = getUsageStats()
@@ -64,7 +69,12 @@ class GameRepositoryImpl(
                 customCategories = existing?.customCategories ?: emptyList(),
                 primaryColorArgb = ColorExtractor.extractPrimaryColor(scanned.icon).toArgb(),
                 lastPlayed = usage?.lastTimeUsed ?: 0L,
-                totalPlayTime = usage?.totalTimeInForeground ?: 0L
+                totalPlayTime = usage?.totalTimeInForeground ?: 0L,
+                isFavorite = existing?.isFavorite ?: false,
+                customTitle = existing?.customTitle,
+                customIconPath = existing?.customIconPath,
+                isHidden = existing?.isHidden ?: false,
+                isManuallyAdded = existing?.isManuallyAdded ?: false
             )
         }
         
@@ -104,5 +114,49 @@ class GameRepositoryImpl(
 
     override suspend fun updateCustomCategories(packageName: String, customCategories: List<String>) {
         gameDao.updateCustomCategories(packageName, customCategories)
+    }
+
+    override suspend fun updateFavoriteStatus(packageName: String, isFavorite: Boolean) {
+        gameDao.updateFavoriteStatus(packageName, isFavorite)
+    }
+
+    override suspend fun updateCustomTitle(packageName: String, customTitle: String?) {
+        gameDao.updateCustomTitle(packageName, customTitle)
+    }
+
+    override suspend fun updateCustomIconPath(packageName: String, customIconPath: String?) = withContext(Dispatchers.IO) {
+        val finalPath = if (customIconPath?.startsWith("content://") == true) {
+            saveIconToInternalStorage(packageName, customIconPath.toUri())
+        } else {
+            customIconPath
+        }
+        gameDao.updateCustomIconPath(packageName, finalPath)
+    }
+
+    private fun saveIconToInternalStorage(packageName: String, uri: Uri): String? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val iconDir = File(context.filesDir, "custom_icons")
+            if (!iconDir.exists()) iconDir.mkdirs()
+            
+            val file = File(iconDir, "${packageName}_icon.png")
+            inputStream?.use { input ->
+                file.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            file.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    override suspend fun updateVisibility(packageName: String, isHidden: Boolean) {
+        gameDao.updateVisibility(packageName, isHidden)
+    }
+
+    override suspend fun addGame(game: GameEntry) {
+        gameDao.insertGame(game)
     }
 }
