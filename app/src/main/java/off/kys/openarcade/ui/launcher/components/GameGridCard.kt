@@ -7,7 +7,6 @@ import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -19,11 +18,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,18 +28,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import off.kys.openarcade.R
 import off.kys.openarcade.domain.model.GameEntry
+import off.kys.openarcade.ui.components.ArcadeCard
+import off.kys.openarcade.ui.components.ArcadeGameIcon
 import off.kys.openarcade.ui.launcher.GamesLauncherUiEvent
 import off.kys.openarcade.util.ColorExtractor
 
@@ -87,74 +81,27 @@ fun GameGridCard(
         )
     }
 
-    OutlinedCard(
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-        border = CardDefaults.outlinedCardBorder().copy(
-            brush = Brush.linearGradient(
-                listOf(
-                    if (game.isFavorite) adaptivePrimary.copy(alpha = 0.8f) else adaptiveTertiary.copy(alpha = 0.45f),
-                    Color.Transparent
-                )
-            ),
-            width = if (game.isFavorite) 2.dp else 1.dp
-        ),
-        shape = MaterialTheme.shapes.medium,
+    ArcadeCard(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = { showMenu = true }
-            )
+            ),
+        accentColor = if (game.isFavorite) adaptivePrimary else adaptiveTertiary,
+        borderWidth = if (game.isFavorite) 2.dp else 1.dp
     ) {
         Box {
             Column {
-                Box(
+                ArcadeGameIcon(
+                    icon = game.customIconPath ?: game.icon,
+                    contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(1.25f)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    adaptivePrimary.copy(alpha = 0.18f),
-                                    adaptivePrimary.copy(alpha = 0.04f)
-                                )
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Card(
-                        shape = MaterialTheme.shapes.small,
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
-                    ) {
-                        AsyncImage(
-                            model = game.customIconPath ?: game.icon,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(52.dp)
-                                .padding(4.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    adaptivePrimary.copy(alpha = 0.70f),
-                                    adaptiveTertiary.copy(alpha = 0.35f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
+                        .aspectRatio(1.25f),
+                    primaryColor = adaptivePrimary,
+                    tertiaryColor = adaptiveTertiary,
+                    iconSize = 52.dp
                 )
 
                 Column(
