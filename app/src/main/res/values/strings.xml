@@ -73,4 +73,9 @@
     <string name="search_apps">Search apps…</string>
     <string name="add_selected">Add Selected</string>
     <string name="filter_hidden">Hidden</string>
+    <string name="play_time_trend">Play Time Trend</string>
+    <string name="category_distribution">Category Distribution</string>
+    <string name="top_games">Top Games</string>
+    <string name="daily">Daily</string>
+    <string name="weekly">Weekly</string>
 </resources>

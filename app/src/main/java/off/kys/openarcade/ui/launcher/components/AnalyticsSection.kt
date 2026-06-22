@@ -15,13 +15,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import cafe.adriel.voyager.navigator.LocalNavigator
+import cafe.adriel.voyager.navigator.currentOrThrow
 import off.kys.openarcade.R
 import off.kys.openarcade.domain.model.GameEntry
+import off.kys.openarcade.ui.analytics.AnalyticsScreen
 import off.kys.openarcade.ui.components.ArcadeCard
 import off.kys.openarcade.ui.components.SectionHeader
 
 @Composable
 fun AnalyticsSection(games: List<GameEntry>, modifier: Modifier = Modifier) {
+    val navigator = LocalNavigator.currentOrThrow
     val totalPlayTimeMs = games.sumOf { it.totalPlayTime }
     val totalPlayTimeHours = totalPlayTimeMs / (1000 * 60 * 60)
     val totalPlayTimeMinutes = (totalPlayTimeMs / (1000 * 60)) % 60
@@ -33,6 +37,7 @@ fun AnalyticsSection(games: List<GameEntry>, modifier: Modifier = Modifier) {
         )
         ArcadeCard(
             modifier = Modifier.fillMaxWidth(),
+            onClick = { navigator.push(AnalyticsScreen()) },
             accentColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.66f)
         ) {
             Row(

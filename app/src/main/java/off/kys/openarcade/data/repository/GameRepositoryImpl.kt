@@ -8,15 +8,22 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import off.kys.openarcade.data.local.dao.GameDao
+import off.kys.openarcade.domain.model.AnalyticsData
+import off.kys.openarcade.domain.model.CategoryDistribution
 import off.kys.openarcade.domain.model.GameEntry
+import off.kys.openarcade.domain.model.PlayTimePoint
+import off.kys.openarcade.domain.model.TopGame
 import off.kys.openarcade.domain.repository.GameRepository
 import off.kys.openarcade.util.ColorExtractor
 import off.kys.openarcade.util.GameScanner
 import java.io.File
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 
 class GameRepositoryImpl(
     private val context: Context,
@@ -158,5 +165,91 @@ class GameRepositoryImpl(
 
     override suspend fun addGame(game: GameEntry) {
         gameDao.insertGame(game)
+    }
+
+    override fun getAnalyticsData(): Flow<AnalyticsData> = flow {
+        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+
+        // Daily Trend (Last 7 days)
+        val dailyTrend = mutableListOf<PlayTimePoint>()
+        val dayFormat = SimpleDateFormat("EEE", Locale.getDefault())
+        for (i in 6 downTo 0) {
+            val start = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+                add(Calendar.DAY_OF_YEAR, -i)
+            }
+            val end = Calendar.getInstance().apply {
+                timeInMillis = start.timeInMillis
+                add(Calendar.DAY_OF_YEAR, 1)
+            }
+            
+            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, start.timeInMillis, end.timeInMillis)
+            val totalTime = stats.sumOf { it.totalTimeInForeground }
+            dailyTrend.add(PlayTimePoint(dayFormat.format(start.time), totalTime, start.timeInMillis))
+        }
+
+        // Weekly Trend (Last 4 weeks)
+        val weeklyTrend = mutableListOf<PlayTimePoint>()
+        for (i in 3 downTo 0) {
+            val start = Calendar.getInstance().apply {
+                set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+                add(Calendar.WEEK_OF_YEAR, -i)
+            }
+            val end = Calendar.getInstance().apply {
+                timeInMillis = start.timeInMillis
+                add(Calendar.WEEK_OF_YEAR, 1)
+            }
+            
+            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_WEEKLY, start.timeInMillis, end.timeInMillis)
+            val totalTime = stats.sumOf { it.totalTimeInForeground }
+            weeklyTrend.add(PlayTimePoint("W${4-i}", totalTime, start.timeInMillis))
+        }
+
+        // Get all games from DB to match usage stats with categories and titles
+        val games = gameDao.getAllGamesSync()
+        val allStats = getUsageStats()
+        
+        val topGames = games.map { game ->
+            val usage = allStats[game.packageName]
+            TopGame(
+                packageName = game.packageName,
+                title = game.displayName,
+                playTimeMs = usage?.totalTimeInForeground ?: 0L,
+                primaryColorArgb = game.primaryColorArgb
+            )
+        }.filter { it.playTimeMs > 0 }.sortedByDescending { it.playTimeMs }.take(5)
+
+        val categoryGroups = games.groupBy { it.category }
+        val categoryDistribution = categoryGroups.map { (_, categoryGames) ->
+            val categoryTime = categoryGames.sumOf { game ->
+                allStats[game.packageName]?.totalTimeInForeground ?: 0L
+            }
+            categoryTime
+        }.let { times ->
+            val totalTime = times.sum()
+            categoryGroups.keys.mapIndexed { index, category ->
+                val time = times[index]
+                CategoryDistribution(
+                    category = category,
+                    playTimeMs = time,
+                    percentage = if (totalTime > 0) time.toFloat() / totalTime else 0f
+                )
+            }
+        }.filter { it.playTimeMs > 0 }.sortedByDescending { it.playTimeMs }
+
+        emit(AnalyticsData(
+            totalPlayTimeMs = allStats.values.sumOf { it.totalTimeInForeground },
+            dailyTrend = dailyTrend,
+            weeklyTrend = weeklyTrend,
+            categoryDistribution = categoryDistribution,
+            topGames = topGames
+        ))
     }
 }

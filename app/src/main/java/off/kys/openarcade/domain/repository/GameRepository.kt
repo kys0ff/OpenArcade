@@ -15,4 +15,5 @@ interface GameRepository {
     suspend fun updateCustomIconPath(packageName: String, customIconPath: String?)
     suspend fun updateVisibility(packageName: String, isHidden: Boolean)
     suspend fun addGame(game: GameEntry)
+    fun getAnalyticsData(): Flow<off.kys.openarcade.domain.model.AnalyticsData>
 }
