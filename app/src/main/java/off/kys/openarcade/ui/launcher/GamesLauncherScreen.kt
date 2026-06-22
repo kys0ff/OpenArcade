@@ -21,7 +21,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -83,15 +82,6 @@ class GamesLauncherScreen : Screen {
                                 onInspectGame = { pkg ->
                                     viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
                                     navigator.push(GameDetailScreen(pkg))
-                                },
-                                modifier = Modifier.layout { measurable, constraints ->
-                                    val bleed = 16.dp.roundToPx()
-                                    val placeable = measurable.measure(
-                                        constraints.copy(maxWidth = (constraints.maxWidth + (bleed * 2)))
-                                    )
-                                    layout(constraints.maxWidth, placeable.height) {
-                                        placeable.placeRelative(-bleed, 0)
-                                    }
                                 }
                             )
                         }

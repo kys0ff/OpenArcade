@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -54,7 +55,17 @@ fun HeroBannerPager(
     val pagerCount = minOf(installedGames.size, 5)
     val pagerState = rememberPagerState { pagerCount }
 
-    Box(modifier = modifier) {
+    Box(
+        modifier = modifier.layout { measurable, constraints ->
+            val bleed = 16.dp.roundToPx()
+            val placeable = measurable.measure(
+                constraints.copy(maxWidth = (constraints.maxWidth + (bleed * 2)))
+            )
+            layout(constraints.maxWidth, placeable.height) {
+                placeable.placeRelative(-bleed, 0)
+            }
+        }
+    ) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
@@ -178,8 +189,9 @@ fun HeroBannerPager(
                         label = "dotWidth"
                     )
                     val activeGameColor = remember(pagerState.currentPage, isDark) {
-                        val color = installedGames.getOrNull(pagerState.currentPage)?.getPrimaryColor()
-                            ?: Color.White
+                        val color =
+                            installedGames.getOrNull(pagerState.currentPage)?.getPrimaryColor()
+                                ?: Color.White
                         ColorExtractor.getAdaptiveColor(color, isDark)
                     }
 

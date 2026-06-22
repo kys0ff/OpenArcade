@@ -1,8 +1,11 @@
 package off.kys.openarcade.ui.launcher.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -38,7 +42,6 @@ import off.kys.openarcade.domain.model.GameCategory
 import off.kys.openarcade.domain.model.GameFilter
 import off.kys.openarcade.ui.launcher.GamesLauncherUiState
 import off.kys.openarcade.ui.theme.OpenArcadeTheme
-
 
 @Composable
 fun FilterChipsRow(
@@ -100,7 +103,6 @@ private fun ArcadeFilterChip(
     val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
-    // Animate background fill
     val containerColor by animateColorAsState(
         targetValue = if (selected) primaryContainer.copy(alpha = 0.72f) else surfaceContainerLow,
         animationSpec = tween(AnimDuration),
@@ -119,7 +121,6 @@ private fun ArcadeFilterChip(
         label = "chipIcon"
     )
 
-    // Gradient border: stronger when selected
     val borderBrush = if (selected) {
         Brush.linearGradient(
             listOf(
@@ -137,7 +138,6 @@ private fun ArcadeFilterChip(
         )
     }
 
-    // Animate leading slot width so the icon slides in/out without a layout jump
     val leadingSlotWidth by animateDpAsState(
         targetValue = if (selected) ChipIconSize + ChipIconSpacing else 0.dp,
         animationSpec = tween(AnimDuration),
@@ -158,15 +158,28 @@ private fun ArcadeFilterChip(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            // Leading icon slot — collapses when not selected
-            if (leadingSlotWidth > 0.dp) {
-                Icon(
-                    painter = painterResource(R.drawable.round_check_24),
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(ChipIconSize)
-                )
-                Spacer(Modifier.width(ChipIconSpacing))
+            // Keep the Box in layout framework to read the animating width values smoothly
+            Box(
+                modifier = Modifier
+                    .width(leadingSlotWidth)
+                    .clipToBounds(),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                this@Row.AnimatedVisibility(
+                    visible = selected,
+                    enter = fadeIn(animationSpec = tween(AnimDuration)),
+                    exit = fadeOut(animationSpec = tween(AnimDuration))
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.round_check_24),
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(ChipIconSize)
+                        )
+                        Spacer(Modifier.width(ChipIconSpacing))
+                    }
+                }
             }
 
             Text(
