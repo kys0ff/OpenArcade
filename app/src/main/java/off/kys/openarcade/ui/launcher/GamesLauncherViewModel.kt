@@ -23,9 +23,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import off.kys.openarcade.data.local.ArcadePreferences
 import off.kys.openarcade.domain.model.GameCategory
 import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.model.GameFilter
+import off.kys.openarcade.domain.model.GameSortOption
 import off.kys.openarcade.domain.usecase.GetGamesUseCase
 import off.kys.openarcade.domain.usecase.RefreshAllGameStatsUseCase
 import off.kys.openarcade.domain.usecase.RefreshGamesUseCase
@@ -36,6 +38,7 @@ class GamesLauncherViewModel(
     private val refreshGamesUseCase: RefreshGamesUseCase,
     private val refreshAllGameStatsUseCase: RefreshAllGameStatsUseCase,
     getGamesUseCase: GetGamesUseCase,
+    private val prefs: ArcadePreferences
 ) : ViewModel() {
 
     private val selectedFilter = MutableStateFlow<GameFilter>(GameFilter.All)
@@ -79,8 +82,8 @@ class GamesLauncherViewModel(
     private val isLoading = MutableStateFlow(true)
 
     val uiState: StateFlow<GamesLauncherUiState> = combine(
-        combine(allGames, availableFilters, selectedFilter) { all, filters, selected ->
-            Triple(all, filters, selected)
+        combine(allGames, availableFilters, selectedFilter, prefs.selectedSort) { all, filters, selected, sort ->
+            DataBundle(all, filters, selected, sort)
         },
         combine(
             batteryLevel,
@@ -91,7 +94,7 @@ class GamesLauncherViewModel(
             LoadingData(battery, storage, permission, loading)
         }
     ) { gameData, deviceData ->
-        val (all, filters, selected) = gameData
+        val (all, filters, selected, sort) = gameData
         val (battery, storage, permission, loading) = deviceData
 
         val filtered = when (selected) {
@@ -102,15 +105,23 @@ class GamesLauncherViewModel(
             is GameFilter.Custom -> all.filter { selected.name in it.customCategories }
         }
 
+        val sorted = when (sort) {
+            GameSortOption.TITLE_ASC -> filtered.sortedBy { it.title.lowercase() }
+            GameSortOption.TITLE_DESC -> filtered.sortedByDescending { it.title.lowercase() }
+            GameSortOption.LAST_PLAYED -> filtered.sortedByDescending { it.lastPlayed }
+            GameSortOption.TOTAL_PLAY_TIME -> filtered.sortedByDescending { it.totalPlayTime }
+        }
+
         val recent = all.filter { it.lastPlayed > 0 }
             .sortedByDescending { it.lastPlayed }
             .take(5)
 
         GamesLauncherUiState(
-            filteredGames = filtered,
+            filteredGames = sorted,
             recentGames = recent,
             filters = filters,
             selectedFilter = selected,
+            selectedSort = sort,
             batteryLevel = battery,
             storageUsage = storage,
             hasUsageStatsPermission = permission,
@@ -120,6 +131,13 @@ class GamesLauncherViewModel(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = GamesLauncherUiState()
+    )
+
+    private data class DataBundle(
+        val all: List<GameEntry>,
+        val filters: List<GameFilter>,
+        val selected: GameFilter,
+        val sort: GameSortOption
     )
 
     private data class LoadingData(
@@ -154,6 +172,10 @@ class GamesLauncherViewModel(
     fun onEvent(event: GamesLauncherUiEvent) = when (event) {
         is GamesLauncherUiEvent.FilterSelected -> {
             selectedFilter.value = event.filter
+        }
+
+        is GamesLauncherUiEvent.SortSelected -> {
+            prefs.setSortOption(event.sort)
         }
 
         is GamesLauncherUiEvent.RefreshRequested -> refreshGames()

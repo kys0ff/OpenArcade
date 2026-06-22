@@ -2,6 +2,7 @@ package off.kys.openarcade.di
 
 import androidx.room.Room
 import off.kys.openarcade.data.local.AppDatabase
+import off.kys.openarcade.data.local.ArcadePreferences
 import off.kys.openarcade.data.repository.GameRepositoryImpl
 import off.kys.openarcade.domain.repository.GameRepository
 import off.kys.openarcade.domain.usecase.GetGameByPackageUseCase
@@ -29,6 +30,8 @@ val appModule = module {
 
     single { get<AppDatabase>().gameDao() }
 
+    single { ArcadePreferences(androidContext()) }
+
     single<GameRepository> { GameRepositoryImpl(androidContext(), get()) }
 
     factory { GetGamesUseCase(get()) }
@@ -42,7 +45,8 @@ val appModule = module {
         application = androidApplication(),
         refreshGamesUseCase = get(),
         refreshAllGameStatsUseCase = get(),
-        getGamesUseCase = get()
+        getGamesUseCase = get(),
+        prefs = get()
     ) }
 
     viewModel { (packageName: String) ->

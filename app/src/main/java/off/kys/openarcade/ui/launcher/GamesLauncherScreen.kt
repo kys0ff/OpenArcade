@@ -125,7 +125,13 @@ class GamesLauncherScreen : Screen {
 
                     if (uiState.filteredGames.isNotEmpty()) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
-                            LibraryHeader(gameCount = uiState.filteredGames.size)
+                            LibraryHeader(
+                                gameCount = uiState.filteredGames.size,
+                                selectedSort = uiState.selectedSort,
+                                onSortSelected = { sort ->
+                                    viewModel.onEvent(GamesLauncherUiEvent.SortSelected(sort))
+                                }
+                            )
                         }
                     }
 

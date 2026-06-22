@@ -49,4 +49,9 @@
     <string name="game_detail_label_last_played">Last played</string>
     <string name="game_detail_label_play_time">Play time</string>
     <string name="game_detail_loading">Loading…</string>
+    <string name="sort_title_asc">Title (A-Z)</string>
+    <string name="sort_title_desc">Title (Z-A)</string>
+    <string name="sort_last_played">Last played</string>
+    <string name="sort_play_time">Total play time</string>
+    <string name="sort_button_desc">Sort games</string>
 </resources>
