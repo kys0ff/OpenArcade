@@ -63,7 +63,7 @@ private fun FavoriteGameCard(
     ArcadeCard(
         onClick = onClick,
         modifier = Modifier.size(72.dp),
-        accentColor = adaptiveTertiary
+        accentColor = adaptiveTertiary,
     ) {
         ArcadeGameIcon(
             icon = game.customIconPath ?: game.icon,

@@ -1,7 +1,7 @@
 package off.kys.openarcade.ui.launcher.components
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,20 +10,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import off.kys.openarcade.R
 import off.kys.openarcade.domain.model.GameEntry
+import off.kys.openarcade.ui.components.ArcadeCard
+import off.kys.openarcade.ui.components.ArcadeGameIcon
 import off.kys.openarcade.ui.components.SectionHeader
+import off.kys.openarcade.util.ColorExtractor
 
 @Composable
 fun RecentActivitySection(
@@ -42,24 +39,35 @@ fun RecentActivitySection(
             contentPadding = PaddingValues(bottom = 4.dp)
         ) {
             items(games, key = { "recent_${it.packageName}" }) { game ->
-                Card(
-                    onClick = { onGameClick(game.packageName) },
-                    modifier = Modifier.size(64.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-                ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        AsyncImage(
-                            model = game.customIconPath ?: game.icon,
-                            contentDescription = game.displayName,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .padding(4.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
+                RecentGameCard(game) {
+                    onGameClick(game.packageName)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RecentGameCard(
+    game: GameEntry,
+    onClick: () -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+    val adaptivePrimary = ColorExtractor.getAdaptiveColor(game.getPrimaryColor(), isDark)
+    val adaptiveTertiary = ColorExtractor.getAdaptiveColor(game.getTertiaryColor(), isDark)
+
+    ArcadeCard(
+        onClick = onClick,
+        modifier = Modifier.size(72.dp),
+        accentColor = adaptiveTertiary,
+    ) {
+        ArcadeGameIcon(
+            icon = game.customIconPath ?: game.icon,
+            contentDescription = game.displayName,
+            modifier = Modifier.fillMaxSize(),
+            primaryColor = adaptivePrimary,
+            tertiaryColor = adaptiveTertiary,
+            iconSize = 44.dp
+        )
     }
 }

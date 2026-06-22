@@ -154,11 +154,11 @@ fun GameGridCard(
                 game = game,
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false },
-                onFavoriteToggle = { 
+                onFavoriteToggle = {
                     onEvent(GamesLauncherUiEvent.FavoriteToggled(game.packageName, !game.isFavorite))
                 },
                 onRename = { showRenameDialog = true },
-                onRemove = { 
+                onRemove = {
                     onEvent(GamesLauncherUiEvent.VisibilityToggled(game.packageName, !game.isHidden))
                 },
                 onAppInfo = {
