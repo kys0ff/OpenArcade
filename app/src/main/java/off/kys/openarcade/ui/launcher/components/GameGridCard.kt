@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -69,7 +70,7 @@ fun GameGridCard(
         RenameDialog(
             initialTitle = game.displayName,
             accentColor = adaptivePrimary,
-            onConfirm = { 
+            onConfirm = {
                 onEvent(GamesLauncherUiEvent.RenameRequested(game.packageName, it))
                 showRenameDialog = false
             },
@@ -84,6 +85,7 @@ fun GameGridCard(
     ArcadeCard(
         modifier = modifier
             .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = { showMenu = true }
