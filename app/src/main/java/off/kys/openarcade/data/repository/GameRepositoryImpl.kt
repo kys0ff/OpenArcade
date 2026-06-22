@@ -4,8 +4,10 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.compose.ui.graphics.toArgb
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import off.kys.openarcade.util.GameScanner
 import off.kys.openarcade.data.local.dao.GameDao
 import off.kys.openarcade.domain.model.GameEntry
@@ -46,7 +48,7 @@ class GameRepositoryImpl(
         }
     }
 
-    override suspend fun refreshGames() {
+    override suspend fun refreshGames() = withContext(Dispatchers.IO) {
         val scannedGames = GameScanner.fetchInstalledGames(context)
         val existingGames = gameDao.getAllGamesSync()
 

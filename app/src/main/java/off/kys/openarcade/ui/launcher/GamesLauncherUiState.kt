@@ -11,5 +11,5 @@ data class GamesLauncherUiState(
     val batteryLevel: Int = 0,
     val storageUsage: Int = 0,
     val hasUsageStatsPermission: Boolean = true,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = true
 )

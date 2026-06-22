@@ -41,7 +41,7 @@ class GamesLauncherViewModel(
     private val allGames: StateFlow<List<GameEntry>> = getGamesUseCase()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.Eagerly,
             initialValue = emptyList()
         )
 
@@ -67,14 +67,14 @@ class GamesLauncherViewModel(
         filters
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = listOf(GameFilter.All)
     )
 
     private val batteryLevel = MutableStateFlow(0)
     private val storageUsage = MutableStateFlow(0)
     private val hasUsageStatsPermission = MutableStateFlow(true)
-    private val isLoading = MutableStateFlow(false)
+    private val isLoading = MutableStateFlow(true)
 
     val uiState: StateFlow<GamesLauncherUiState> = combine(
         combine(allGames, availableFilters, selectedFilter) { all, filters, selected ->
@@ -116,7 +116,7 @@ class GamesLauncherViewModel(
         )
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = GamesLauncherUiState()
     )
 
