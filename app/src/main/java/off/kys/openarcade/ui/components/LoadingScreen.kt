@@ -58,14 +58,12 @@ fun ArcadeLoadingIndicator(
     val primary = MaterialTheme.colorScheme.primary
     val tertiary = MaterialTheme.colorScheme.tertiary
 
-    // Evenly interpolate a color for each dot across primary→tertiary
     val dotColors = List(DotCount) { i ->
         lerp(primary, tertiary, i / (DotCount - 1).toFloat())
     }
 
     val transition = rememberInfiniteTransition(label = "arcadeDots")
 
-    // One animated float per dot, staggered by StaggerMs
     val offsets = List(DotCount) { i ->
         val delay = i * StaggerMs
         val bounce by transition.animateFloat(
@@ -170,7 +168,6 @@ fun LoadingScreen(
     val primary = MaterialTheme.colorScheme.primary
     val tertiary = MaterialTheme.colorScheme.tertiary
 
-    // Radial wash transitioning from primary to tertiary with subtle alphas
     val backgroundBrush = Brush.radialGradient(
         listOf(
             primary.copy(alpha = 0.07f),

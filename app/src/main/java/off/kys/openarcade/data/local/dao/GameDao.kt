@@ -21,6 +21,9 @@ interface GameDao {
     @Query("UPDATE games SET customCategories = :customCategories WHERE packageName = :packageName")
     suspend fun updateCustomCategories(packageName: String, customCategories: List<String>)
 
+    @Query("UPDATE games SET lastPlayed = :lastPlayed, totalPlayTime = :totalPlayTime WHERE packageName = :packageName")
+    suspend fun updatePlayStats(packageName: String, lastPlayed: Long, totalPlayTime: Long)
+
     @Query("SELECT * FROM games")
     suspend fun getAllGamesSync(): List<GameEntry>
 

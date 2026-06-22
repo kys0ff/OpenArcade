@@ -27,6 +27,8 @@
     <string name="games_count">%1$d games</string>
     <string name="play_game">Play %1$s</string>
     <string name="never_played">Never played</string>
+    <string name="no_play_time">No play time recorded</string>
+    <string name="play_time_seconds">%1$ds</string>
     <string name="game_detail_categories_title">Categories</string>
     <string name="game_detail_custom_tags_label">Custom tags</string>
     <string name="game_detail_remove_tag_desc">Remove %1$s</string>
@@ -44,5 +46,7 @@
     <string name="game_detail_label_categories">Categories</string>
     <string name="game_detail_label_status">Status</string>
     <string name="game_detail_label_package">Package</string>
+    <string name="game_detail_label_last_played">Last played</string>
+    <string name="game_detail_label_play_time">Play time</string>
     <string name="game_detail_loading">Loading…</string>
 </resources>

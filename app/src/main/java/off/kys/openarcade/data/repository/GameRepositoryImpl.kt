@@ -8,11 +8,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import off.kys.openarcade.util.GameScanner
 import off.kys.openarcade.data.local.dao.GameDao
 import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.repository.GameRepository
 import off.kys.openarcade.util.ColorExtractor
+import off.kys.openarcade.util.GameScanner
 import java.util.Calendar
 
 class GameRepositoryImpl(
@@ -53,10 +53,7 @@ class GameRepositoryImpl(
         val existingGames = gameDao.getAllGamesSync()
 
         // Fetch usage stats
-        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val calendar = Calendar.getInstance()
-        calendar.add(Calendar.YEAR, -1)
-        val stats = usageStatsManager.queryAndAggregateUsageStats(calendar.timeInMillis, System.currentTimeMillis())
+        val stats = getUsageStats()
 
         val entities = scannedGames.map { scanned ->
             val existing = existingGames.find { it.packageName == scanned.packageName }
@@ -77,6 +74,32 @@ class GameRepositoryImpl(
         // Mark games that are no longer installed as uninstalled
         val presentPackageNames = scannedGames.map { it.packageName }
         gameDao.markMissingAsUninstalled(presentPackageNames)
+    }
+
+    override suspend fun refreshGameStats(packageName: String) = withContext(Dispatchers.IO) {
+        val stats = getUsageStats()
+        val usage = stats[packageName]
+        if (usage != null) {
+            gameDao.updatePlayStats(packageName, usage.lastTimeUsed, usage.totalTimeInForeground)
+        }
+    }
+
+    override suspend fun refreshAllGameStats() = withContext(Dispatchers.IO) {
+        val stats = getUsageStats()
+        val existingGames = gameDao.getAllGamesSync()
+        existingGames.forEach { existing ->
+            val usage = stats[existing.packageName]
+            if (usage != null) {
+                gameDao.updatePlayStats(existing.packageName, usage.lastTimeUsed, usage.totalTimeInForeground)
+            }
+        }
+    }
+
+    private fun getUsageStats(): Map<String, android.app.usage.UsageStats> {
+        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.YEAR, -1)
+        return usageStatsManager.queryAndAggregateUsageStats(calendar.timeInMillis, System.currentTimeMillis())
     }
 
     override suspend fun updateCustomCategories(packageName: String, customCategories: List<String>) {

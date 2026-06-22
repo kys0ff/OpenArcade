@@ -22,15 +22,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import off.kys.openarcade.R
-import off.kys.openarcade.ui.components.LoadingScreen
 import off.kys.openarcade.ui.detail.GameDetailScreen
 import off.kys.openarcade.ui.launcher.components.AnalyticsSection
 import off.kys.openarcade.ui.launcher.components.EmptyGamesState
@@ -57,11 +54,7 @@ class GamesLauncherScreen : Screen {
 
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
             viewModel.onEvent(GamesLauncherUiEvent.PermissionCheckRequested)
-        }
-
-        if (uiState.isLoading && uiState.filteredGames.isEmpty()) {
-            LoadingScreen(message = stringResource(R.string.searching_for_games))
-            return
+            viewModel.onEvent(GamesLauncherUiEvent.RefreshStats)
         }
 
         Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->

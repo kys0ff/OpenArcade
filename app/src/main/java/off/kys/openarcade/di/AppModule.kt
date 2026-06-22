@@ -6,6 +6,8 @@ import off.kys.openarcade.data.repository.GameRepositoryImpl
 import off.kys.openarcade.domain.repository.GameRepository
 import off.kys.openarcade.domain.usecase.GetGameByPackageUseCase
 import off.kys.openarcade.domain.usecase.GetGamesUseCase
+import off.kys.openarcade.domain.usecase.RefreshAllGameStatsUseCase
+import off.kys.openarcade.domain.usecase.RefreshGameStatsUseCase
 import off.kys.openarcade.domain.usecase.RefreshGamesUseCase
 import off.kys.openarcade.domain.usecase.UpdateGameCategoryUseCase
 import off.kys.openarcade.ui.detail.GameDetailViewModel
@@ -31,12 +33,15 @@ val appModule = module {
 
     factory { GetGamesUseCase(get()) }
     factory { RefreshGamesUseCase(get()) }
+    factory { RefreshGameStatsUseCase(get()) }
+    factory { RefreshAllGameStatsUseCase(get()) }
     factory { GetGameByPackageUseCase(get()) }
     factory { UpdateGameCategoryUseCase(get()) }
 
     viewModel { GamesLauncherViewModel(
         application = androidApplication(),
         refreshGamesUseCase = get(),
+        refreshAllGameStatsUseCase = get(),
         getGamesUseCase = get()
     ) }
 
@@ -45,7 +50,8 @@ val appModule = module {
             packageName = packageName,
             application = androidApplication(),
             getGameByPackageUseCase = get(),
-            updateGameCategoryUseCase = get()
+            updateGameCategoryUseCase = get(),
+            refreshGameStatsUseCase = get()
         )
     }
 }

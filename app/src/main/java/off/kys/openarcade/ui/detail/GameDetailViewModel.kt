@@ -11,13 +11,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import off.kys.openarcade.domain.usecase.GetGameByPackageUseCase
+import off.kys.openarcade.domain.usecase.RefreshGameStatsUseCase
 import off.kys.openarcade.domain.usecase.UpdateGameCategoryUseCase
 
 class GameDetailViewModel(
     private val packageName: String,
     application: Application,
     getGameByPackageUseCase: GetGameByPackageUseCase,
-    private val updateGameCategoryUseCase: UpdateGameCategoryUseCase
+    private val updateGameCategoryUseCase: UpdateGameCategoryUseCase,
+    private val refreshGameStatsUseCase: RefreshGameStatsUseCase
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(GameDetailUiState())
@@ -35,6 +37,7 @@ class GameDetailViewModel(
     fun onEvent(event: GameDetailUiEvent) {
         when (event) {
             is GameDetailUiEvent.LaunchGame -> launchGame()
+            is GameDetailUiEvent.RefreshStats -> refreshStats()
             is GameDetailUiEvent.OpenCategoryDialog -> {
                 val currentCategories = uiState.value.game?.customCategories ?: emptyList()
                 _uiState.update {
@@ -78,6 +81,12 @@ class GameDetailViewModel(
         val launchIntent = application.packageManager.getLaunchIntentForPackage(packageName)
         if (launchIntent != null) {
             application.startActivity(launchIntent)
+        }
+    }
+
+    private fun refreshStats() {
+        viewModelScope.launch {
+            refreshGameStatsUseCase(packageName)
         }
     }
 

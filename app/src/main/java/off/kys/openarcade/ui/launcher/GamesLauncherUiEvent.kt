@@ -8,4 +8,5 @@ sealed interface GamesLauncherUiEvent {
     data object GrantPermissionClicked : GamesLauncherUiEvent
     data object RefreshRequested : GamesLauncherUiEvent
     data object PermissionCheckRequested : GamesLauncherUiEvent
+    data object RefreshStats : GamesLauncherUiEvent
 }

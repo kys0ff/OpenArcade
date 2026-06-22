@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -22,6 +24,10 @@ class GameDetailScreen(val packageName: String) : Screen {
         val uiState by viewModel.uiState.collectAsState()
 
         val currentGame = uiState.game
+
+        LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+            viewModel.onEvent(GameDetailUiEvent.RefreshStats)
+        }
 
         if (currentGame != null) {
             GameDetailContent(

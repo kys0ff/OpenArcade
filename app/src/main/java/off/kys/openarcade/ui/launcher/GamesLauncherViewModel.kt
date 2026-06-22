@@ -27,12 +27,14 @@ import off.kys.openarcade.domain.model.GameCategory
 import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.model.GameFilter
 import off.kys.openarcade.domain.usecase.GetGamesUseCase
+import off.kys.openarcade.domain.usecase.RefreshAllGameStatsUseCase
 import off.kys.openarcade.domain.usecase.RefreshGamesUseCase
 import java.io.File
 
 class GamesLauncherViewModel(
     private val application: Application,
     private val refreshGamesUseCase: RefreshGamesUseCase,
+    private val refreshAllGameStatsUseCase: RefreshAllGameStatsUseCase,
     getGamesUseCase: GetGamesUseCase,
 ) : ViewModel() {
 
@@ -166,6 +168,7 @@ class GamesLauncherViewModel(
         )
 
         is GamesLauncherUiEvent.PermissionCheckRequested -> updatePermissionStatus()
+        is GamesLauncherUiEvent.RefreshStats -> refreshStats()
     }
 
     private fun refreshGames() {
@@ -176,6 +179,12 @@ class GamesLauncherViewModel(
             } finally {
                 isLoading.value = false
             }
+        }
+    }
+
+    private fun refreshStats() {
+        viewModelScope.launch {
+            refreshAllGameStatsUseCase()
         }
     }
 

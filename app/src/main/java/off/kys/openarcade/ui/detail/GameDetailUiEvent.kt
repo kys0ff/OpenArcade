@@ -8,4 +8,5 @@ sealed interface GameDetailUiEvent {
     data class RemoveCategory(val category: String) : GameDetailUiEvent
     data class UpdateNewCategoryDraft(val text: String) : GameDetailUiEvent
     data object SaveCategories : GameDetailUiEvent
+    data object RefreshStats : GameDetailUiEvent
 }

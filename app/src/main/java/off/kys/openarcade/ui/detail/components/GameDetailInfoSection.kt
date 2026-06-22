@@ -11,11 +11,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import off.kys.openarcade.R
 import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.ui.components.SectionHeader
+import off.kys.openarcade.util.TimeUtils
 
 @Composable
 fun GameDetailInfoSection(
@@ -25,6 +27,8 @@ fun GameDetailInfoSection(
     onCategoryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+
     Column(modifier = modifier) {
         SectionHeader(
             title = stringResource(R.string.game_detail_section_details),
@@ -69,6 +73,28 @@ fun GameDetailInfoSection(
                 } else {
                     MaterialTheme.colorScheme.error
                 },
+                isFirst = false,
+                isLast = false,
+                onClick = null
+            )
+
+            DetailRow(
+                label = stringResource(R.string.game_detail_label_last_played),
+                value = remember(currentGame.lastPlayed) {
+                    TimeUtils.formatLastPlayed(context, currentGame.lastPlayed)
+                },
+                valueColor = MaterialTheme.colorScheme.onSurface,
+                isFirst = false,
+                isLast = false,
+                onClick = null
+            )
+
+            DetailRow(
+                label = stringResource(R.string.game_detail_label_play_time),
+                value = remember(currentGame.totalPlayTime) {
+                    TimeUtils.formatTotalPlayTime(context, currentGame.totalPlayTime)
+                },
+                valueColor = MaterialTheme.colorScheme.onSurface,
                 isFirst = false,
                 isLast = false,
                 onClick = null
