@@ -52,14 +52,14 @@ fun rememberArcadeSheetState(
  * Arcade-styled modal bottom sheet.
  *
  * Follows the same gradient-border / adaptive-color language as
- * [GameGridCard], [ArcadeDialog], and [FavoritesSection].
+ * [off.kys.openarcade.ui.launcher.components.GameGridCard], [ArcadeDialog], and [off.kys.openarcade.ui.launcher.components.FavoritesSection].
  *
  * @param onDismissRequest  Called when the user swipes down or taps the scrim.
  * @param sheetState        Hoist via [rememberArcadeSheetState].
  * @param title             Optional heading rendered below the drag handle.
  * @param subtitle          Optional secondary text below [title].
  * @param content           Sheet body — receives [ColumnScope] for natural
- *                          vertical stacking of [GameActionItem]s, chips, etc.
+ *                          vertical stacking of chips, etc.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,7 +106,7 @@ fun ArcadeBottomSheet(
                             Color.Transparent
                         )
                     ),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                    shape = RoundedCornerShape(
                         topStart = 24.dp,
                         topEnd = 24.dp
                     )

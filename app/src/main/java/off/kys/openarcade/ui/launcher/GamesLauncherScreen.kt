@@ -2,6 +2,10 @@ package off.kys.openarcade.ui.launcher
 
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -86,93 +90,115 @@ class GamesLauncherScreen : Screen {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    if (uiState.filteredGames.isNotEmpty()) {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            HeroBannerPager(
-                                installedGames = uiState.filteredGames,
-                                onInspectGame = { pkg ->
-                                    viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
-                                    navigator.push(GameDetailScreen(pkg))
+                    item(key = "hero_section", span = { GridItemSpan(maxLineSpan) }) {
+                        Box(Modifier.animateItem()) {
+                            AnimatedContent(
+                                targetState = uiState.filteredGames.isNotEmpty(),
+                                transitionSpec = {
+                                    fadeIn().togetherWith(fadeOut())
+                                },
+                                label = "hero_section_transition"
+                            ) { hasGames ->
+                                if (hasGames) {
+                                    HeroBannerPager(
+                                        installedGames = uiState.filteredGames,
+                                        onInspectGame = { pkg ->
+                                            viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
+                                            navigator.push(GameDetailScreen(pkg))
+                                        }
+                                    )
+                                } else {
+                                    EmptyGamesState()
                                 }
-                            )
-                        }
-                    } else {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            EmptyGamesState()
+                            }
                         }
                     }
 
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        FilterChipsRow(
-                            uiState = uiState,
-                            onFilterSelected = { filter ->
-                                viewModel.onEvent(GamesLauncherUiEvent.FilterSelected(filter))
-                            },
-                            onSettingsClick = { /* TODO: Implement on settings click */ },
-                            onSectionsEdit = { showSectionEdit = true }
-                        )
+                    item(key = "filter_chips", span = { GridItemSpan(maxLineSpan) }) {
+                        Box(Modifier.animateItem()) {
+                            FilterChipsRow(
+                                uiState = uiState,
+                                onFilterSelected = { filter ->
+                                    viewModel.onEvent(GamesLauncherUiEvent.FilterSelected(filter))
+                                },
+                                onSettingsClick = { /* TODO: Implement on settings click */ },
+                                onSectionsEdit = { showSectionEdit = true }
+                            )
+                        }
                     }
 
                     if (!uiState.hasUsageStatsPermission) {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            UsagePermissionCard {
-                                viewModel.onEvent(GamesLauncherUiEvent.GrantPermissionClicked)
-                                context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                        item(key = "usage_permission", span = { GridItemSpan(maxLineSpan) }) {
+                            Box(Modifier.animateItem()) {
+                                UsagePermissionCard {
+                                    viewModel.onEvent(GamesLauncherUiEvent.GrantPermissionClicked)
+                                    context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                }
                             }
                         }
                     }
 
                     if (LauncherSection.SYSTEM_STATUS in uiState.visibleSections) {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            SystemStatusSection(
-                                batteryLevel = uiState.batteryLevel,
-                                storageUsage = uiState.storageUsage
-                            )
+                        item(key = LauncherSection.SYSTEM_STATUS, span = { GridItemSpan(maxLineSpan) }) {
+                            Box(Modifier.animateItem()) {
+                                SystemStatusSection(
+                                    batteryLevel = uiState.batteryLevel,
+                                    storageUsage = uiState.storageUsage
+                                )
+                            }
                         }
                     }
 
                     if (LauncherSection.ANALYTICS in uiState.visibleSections) {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            AnalyticsSection(uiState.filteredGames)
+                        item(key = LauncherSection.ANALYTICS, span = { GridItemSpan(maxLineSpan) }) {
+                            Box(Modifier.animateItem()) {
+                                AnalyticsSection(uiState.filteredGames)
+                            }
                         }
                     }
 
                     if (LauncherSection.FAVORITES in uiState.visibleSections && uiState.favoriteGames.isNotEmpty()) {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            FavoritesSection(
-                                games = uiState.favoriteGames,
-                                onGameClick = { pkg ->
-                                    viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
-                                    navigator.push(GameDetailScreen(pkg))
-                                }
-                            )
+                        item(key = LauncherSection.FAVORITES, span = { GridItemSpan(maxLineSpan) }) {
+                            Box(Modifier.animateItem()) {
+                                FavoritesSection(
+                                    games = uiState.favoriteGames,
+                                    onGameClick = { pkg ->
+                                        viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
+                                        navigator.push(GameDetailScreen(pkg))
+                                    }
+                                )
+                            }
                         }
                     }
 
                     if (LauncherSection.RECENT_ACTIVITY in uiState.visibleSections && uiState.recentGames.isNotEmpty()) {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            RecentActivitySection(
-                                games = uiState.recentGames,
-                                onGameClick = { pkg ->
-                                    viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
-                                    navigator.push(GameDetailScreen(pkg))
-                                }
-                            )
+                        item(key = LauncherSection.RECENT_ACTIVITY, span = { GridItemSpan(maxLineSpan) }) {
+                            Box(Modifier.animateItem()) {
+                                RecentActivitySection(
+                                    games = uiState.recentGames,
+                                    onGameClick = { pkg ->
+                                        viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
+                                        navigator.push(GameDetailScreen(pkg))
+                                    }
+                                )
+                            }
                         }
                     }
 
                     if (uiState.filteredGames.isNotEmpty()) {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            LibraryHeader(
-                                gameCount = uiState.filteredGames.size,
-                                selectedSort = uiState.selectedSort,
-                                onSortSelected = { sort ->
-                                    viewModel.onEvent(GamesLauncherUiEvent.SortSelected(sort))
-                                },
-                                onAddGamesClick = {
-                                    navigator.push(AppPickerScreen())
-                                }
-                            )
+                        item(key = "library_header", span = { GridItemSpan(maxLineSpan) }) {
+                            Box(Modifier.animateItem()) {
+                                LibraryHeader(
+                                    gameCount = uiState.filteredGames.size,
+                                    selectedSort = uiState.selectedSort,
+                                    onSortSelected = { sort ->
+                                        viewModel.onEvent(GamesLauncherUiEvent.SortSelected(sort))
+                                    },
+                                    onAddGamesClick = {
+                                        navigator.push(AppPickerScreen())
+                                    }
+                                )
+                            }
                         }
                     }
 
@@ -183,7 +209,8 @@ class GamesLauncherScreen : Screen {
                                 viewModel.onEvent(GamesLauncherUiEvent.GameClicked(game.packageName))
                                 navigator.push(GameDetailScreen(game.packageName))
                             },
-                            onEvent = { viewModel.onEvent(it) }
+                            onEvent = { viewModel.onEvent(it) },
+                            modifier = Modifier.animateItem()
                         )
                     }
                 }
