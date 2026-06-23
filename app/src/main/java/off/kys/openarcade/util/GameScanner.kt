@@ -59,7 +59,7 @@ object GameScanner {
                     GameEntry(
                         packageName = packageName,
                         title = title,
-                        category = if (isGame) GameCategory.UNDEFINED else GameCategory.UTILITY,
+                        category = if (isGame) GameCategory.GAME else GameCategory.UTILITY,
                         isInstalled = true,
                         primaryColorArgb = primaryColor,
                         onPrimaryColorArgb = onPrimaryColor,

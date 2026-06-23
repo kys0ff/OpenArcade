@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">OpenArcade</string>
     <string name="category_game">Game</string>
+    <string name="category_undefined">Unknown</string>
     <string name="category_installed">Installed</string>
     <string name="category_uninstalled">Uninstalled</string>
     <string name="category_utility">Utility</string>

@@ -1,5 +1,9 @@
 package off.kys.openarcade.ui.analytics
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,15 +19,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -34,11 +35,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -51,6 +54,7 @@ import off.kys.openarcade.ui.components.DonutChart
 import off.kys.openarcade.ui.components.LoadingScreen
 import off.kys.openarcade.ui.components.SectionHeader
 import off.kys.openarcade.ui.components.getDynamicColors
+import off.kys.openarcade.ui.launcher.components.ArcadeFilterChip
 import off.kys.openarcade.util.ColorExtractor
 import org.koin.androidx.compose.koinViewModel
 
@@ -63,28 +67,49 @@ class AnalyticsScreen : Screen {
         val viewModel: AnalyticsViewModel = koinViewModel()
         val uiState by viewModel.uiState.collectAsState()
         val isDark = isSystemInDarkTheme()
+        val primary = MaterialTheme.colorScheme.primary
+        val tertiary = MaterialTheme.colorScheme.tertiary
 
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            stringResource(R.string.analytics),
-                            fontWeight = FontWeight.Black
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { navigator.pop() }) {
-                            Icon(
-                                painter = painterResource(R.drawable.round_arrow_back_24),
-                                contentDescription = null
+                Column {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = stringResource(R.string.analytics),
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Black
+                                )
                             )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { navigator.pop() }) {
+                                Icon(
+                                    painter = painterResource(R.drawable.round_arrow_back_24),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.background
+                        )
                     )
-                )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        primary.copy(alpha = 0.65f),
+                                        tertiary.copy(alpha = 0.30f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                    )
+                }
             },
             containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
@@ -95,25 +120,14 @@ class AnalyticsScreen : Screen {
                 )
             } else {
                 uiState.data?.let { data ->
-                    // 1. Remember trend data filtering so it doesn't re-calculate every frame
                     val chartData = remember(uiState.selectedInterval, data) {
-                        if (uiState.selectedInterval == AnalyticsInterval.DAILY) {
-                            data.dailyTrend
-                        } else {
-                            data.weeklyTrend
-                        }
+                        if (uiState.selectedInterval == AnalyticsInterval.DAILY)
+                            data.dailyTrend else data.weeklyTrend
                     }
-
-                    // 2. Remember adaptive bar color
-                    val primaryColor = MaterialTheme.colorScheme.primary
-                    val barColor = remember(primaryColor, isDark) {
-                        ColorExtractor.getAdaptiveColor(primaryColor, isDark)
+                    val barColor = remember(primary, isDark) {
+                        ColorExtractor.getAdaptiveColor(primary, isDark)
                     }
-
-                    // 3. Remember donut color allocation and map operation
                     val donutColors = getDynamicColors()
-
-                    // 4. Precompute the max play time to avoid calculating it for every row item
                     val maxPlayTime = remember(data.topGames) {
                         data.topGames.firstOrNull()?.playTimeMs ?: 1L
                     }
@@ -125,7 +139,7 @@ class AnalyticsScreen : Screen {
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
-                        // Play Time Trend
+
                         item {
                             Column {
                                 Row(
@@ -137,49 +151,39 @@ class AnalyticsScreen : Screen {
                                         title = stringResource(R.string.play_time_trend),
                                         modifier = Modifier.weight(1f)
                                     )
-                                    SingleChoiceSegmentedButtonRow {
-                                        SegmentedButton(
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        ArcadeFilterChip(
+                                            label = stringResource(R.string.daily),
                                             selected = uiState.selectedInterval == AnalyticsInterval.DAILY,
                                             onClick = {
                                                 viewModel.onEvent(
-                                                    AnalyticsUiEvent.IntervalSelected(
-                                                        AnalyticsInterval.DAILY
-                                                    )
+                                                    AnalyticsUiEvent.IntervalSelected(AnalyticsInterval.DAILY)
                                                 )
-                                            },
-                                            shape = SegmentedButtonDefaults.itemShape(
-                                                index = 0,
-                                                count = 2
-                                            )
-                                        ) {
-                                            Text(stringResource(R.string.daily))
-                                        }
-                                        SegmentedButton(
+                                            }
+                                        )
+                                        ArcadeFilterChip(
+                                            label = stringResource(R.string.weekly),
                                             selected = uiState.selectedInterval == AnalyticsInterval.WEEKLY,
                                             onClick = {
                                                 viewModel.onEvent(
-                                                    AnalyticsUiEvent.IntervalSelected(
-                                                        AnalyticsInterval.WEEKLY
-                                                    )
+                                                    AnalyticsUiEvent.IntervalSelected(AnalyticsInterval.WEEKLY)
                                                 )
-                                            },
-                                            shape = SegmentedButtonDefaults.itemShape(
-                                                index = 1,
-                                                count = 2
-                                            )
-                                        ) {
-                                            Text(stringResource(R.string.weekly))
-                                        }
+                                            }
+                                        )
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Spacer(Modifier.height(16.dp))
+
                                 ArcadeCard(modifier = Modifier.fillMaxWidth()) {
                                     Box(modifier = Modifier.padding(16.dp)) {
                                         BarChart(
                                             data = chartData,
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(240.dp),
+                                                .height(220.dp)
+                                                .padding(bottom = 8.dp),
                                             barColor = barColor
                                         )
                                     }
@@ -187,11 +191,10 @@ class AnalyticsScreen : Screen {
                             }
                         }
 
-                        // Category Distribution
                         item {
                             Column {
                                 SectionHeader(title = stringResource(R.string.category_distribution))
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(Modifier.height(16.dp))
                                 ArcadeCard(modifier = Modifier.fillMaxWidth()) {
                                     Row(
                                         modifier = Modifier.padding(16.dp),
@@ -202,27 +205,34 @@ class AnalyticsScreen : Screen {
                                             modifier = Modifier.size(140.dp),
                                             colors = donutColors
                                         )
-                                        Spacer(modifier = Modifier.width(24.dp))
-                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Spacer(Modifier.width(24.dp))
+                                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                             data.categoryDistribution.take(4)
                                                 .forEachIndexed { index, dist ->
-                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
                                                         Surface(
                                                             modifier = Modifier.size(8.dp),
-                                                            shape = MaterialTheme.shapes.small,
+                                                            shape = CircleShape,
                                                             color = donutColors[index % donutColors.size]
                                                         ) {}
-                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Spacer(Modifier.width(8.dp))
                                                         Text(
-                                                            text = dist.category.name,
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            fontWeight = FontWeight.Bold
+                                                            text = stringResource(dist.category.displayNameRes),
+                                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                                fontWeight = FontWeight.SemiBold
+                                                            ),
+                                                            color = MaterialTheme.colorScheme.onSurface,
+                                                            modifier = Modifier.weight(1f),
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
                                                         )
-                                                        Spacer(modifier = Modifier.weight(1f))
+                                                        Spacer(Modifier.width(8.dp))
                                                         Text(
                                                             text = "${(dist.percentage * 100).toInt()}%",
                                                             style = MaterialTheme.typography.labelSmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            color = donutColors[index % donutColors.size]
                                                         )
                                                     }
                                                 }
@@ -232,15 +242,13 @@ class AnalyticsScreen : Screen {
                             }
                         }
 
-                        // Top Games Header
                         item {
                             SectionHeader(title = stringResource(R.string.top_games))
                         }
 
-                        // 5. Extracted into its own item block with stable sub-composition keys
                         items(
                             items = data.topGames,
-                            key = { it.title } // Use a unique identifier if game has an ID
+                            key = { it.title }
                         ) { game ->
                             TopGameItem(
                                 game = game,
@@ -272,42 +280,77 @@ private fun TopGameItem(
     val gameColor = remember(game, isDark) {
         ColorExtractor.getAdaptiveColor(Color(game.primaryColorArgb), isDark)
     }
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
 
-    val progressValue = remember(game.playTimeMs, maxPlayTime) {
+    val progressTarget = remember(game.playTimeMs, maxPlayTime) {
         game.playTimeMs.toFloat() / maxPlayTime
     }
-
-    val formattedTime = remember(game.playTimeMs) {
-        formatPlayTime(game.playTimeMs)
-    }
+    val progressAnim by animateFloatAsState(
+        targetValue = progressTarget,
+        animationSpec = tween(durationMillis = 900),
+        label = "topGameProgress"
+    )
+    val formattedTime = remember(game.playTimeMs) { formatPlayTime(game.playTimeMs) }
 
     ArcadeCard(
         modifier = Modifier.fillMaxWidth(),
         accentColor = gameColor
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = game.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                Spacer(Modifier.height(2.dp))
                 Text(
                     text = formattedTime,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = gameColor
                 )
             }
-            LinearProgressIndicator(
-                progress = { progressValue },
-                modifier = Modifier.width(64.dp),
-                color = gameColor,
-                trackColor = gameColor.copy(alpha = 0.2f),
-                strokeCap = StrokeCap.Round
-            )
+
+            Spacer(Modifier.width(16.dp))
+
+            Box(
+                modifier = Modifier
+                    .width(72.dp)
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(gameColor.copy(alpha = 0.15f))
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.horizontalGradient(
+                            listOf(
+                                gameColor.copy(alpha = 0.30f),
+                                Color.Transparent
+                            )
+                        ),
+                        shape = CircleShape
+                    )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize(progressAnim)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    gameColor.copy(alpha = 0.95f),
+                                    tertiaryColor.copy(alpha = 0.55f)
+                                )
+                            )
+                        )
+                )
+            }
         }
     }
 }

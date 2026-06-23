@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import off.kys.openarcade.data.local.dao.GameDao
 import off.kys.openarcade.domain.model.AnalyticsData
 import off.kys.openarcade.domain.model.CategoryDistribution
+import off.kys.openarcade.domain.model.GameCategory
 import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.model.PlayTimePoint
 import off.kys.openarcade.domain.model.TopGame
@@ -72,7 +73,7 @@ class GameRepositoryImpl(
             val usage = stats[scanned.packageName]
             
             scanned.copy(
-                category = existing?.category ?: scanned.category,
+                category = if (existing == null || existing.category == GameCategory.UNDEFINED) scanned.category else existing.category,
                 customCategories = existing?.customCategories ?: emptyList(),
                 primaryColorArgb = ColorExtractor.extractPrimaryColor(scanned.icon).toArgb(),
                 lastPlayed = usage?.lastTimeUsed ?: 0L,
@@ -227,15 +228,14 @@ class GameRepositoryImpl(
         }.filter { it.playTimeMs > 0 }.sortedByDescending { it.playTimeMs }.take(5)
 
         val categoryGroups = games.groupBy { it.category }
-        val categoryDistribution = categoryGroups.map { (_, categoryGames) ->
+        val categoryDistribution = categoryGroups.map { (category, categoryGames) ->
             val categoryTime = categoryGames.sumOf { game ->
                 allStats[game.packageName]?.totalTimeInForeground ?: 0L
             }
-            categoryTime
-        }.let { times ->
-            val totalTime = times.sum()
-            categoryGroups.keys.mapIndexed { index, category ->
-                val time = times[index]
+            category to categoryTime
+        }.let { pairs ->
+            val totalTime = pairs.sumOf { it.second }
+            pairs.map { (category, time) ->
                 CategoryDistribution(
                     category = category,
                     playTimeMs = time,

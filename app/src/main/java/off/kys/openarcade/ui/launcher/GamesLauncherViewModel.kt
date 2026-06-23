@@ -28,6 +28,7 @@ import off.kys.openarcade.domain.model.GameCategory
 import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.model.GameFilter
 import off.kys.openarcade.domain.model.GameSortOption
+import off.kys.openarcade.domain.repository.GameRepository
 import off.kys.openarcade.domain.usecase.GetGamesUseCase
 import off.kys.openarcade.domain.usecase.RefreshAllGameStatsUseCase
 import off.kys.openarcade.domain.usecase.RefreshGamesUseCase
@@ -37,7 +38,7 @@ class GamesLauncherViewModel(
     private val application: Application,
     private val refreshGamesUseCase: RefreshGamesUseCase,
     private val refreshAllGameStatsUseCase: RefreshAllGameStatsUseCase,
-    private val gameRepository: off.kys.openarcade.domain.repository.GameRepository,
+    private val gameRepository: GameRepository,
     private val prefs: ArcadePreferences,
     getGamesUseCase: GetGamesUseCase
 ) : ViewModel() {
