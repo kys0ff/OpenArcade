@@ -16,10 +16,12 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -49,7 +51,7 @@ class GamesLauncherViewModel(
     private val allGames: StateFlow<List<GameEntry>> = getGamesUseCase()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.Eagerly,
+            started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
 
@@ -76,32 +78,40 @@ class GamesLauncherViewModel(
         custom.forEach { filters.add(GameFilter.Custom(it)) }
 
         filters
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = listOf(GameFilter.All)
-    )
+    }.flowOn(Dispatchers.Default)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = listOf(GameFilter.All)
+        )
 
     private val batteryLevel = MutableStateFlow(0)
     private val storageUsage = MutableStateFlow(0)
     private val hasUsageStatsPermission = MutableStateFlow(true)
     private val isLoading = MutableStateFlow(true)
 
+    @Suppress("UNCHECKED_CAST")
     val uiState: StateFlow<GamesLauncherUiState> = combine(
-        combine(allGames, availableFilters, selectedFilter, prefs.selectedSort, prefs.visibleSections) { all, filters, selected, sort, sections ->
-            DataBundle(all, filters, selected, sort, sections)
-        },
-        combine(
-            batteryLevel,
-            storageUsage,
-            hasUsageStatsPermission,
-            isLoading
-        ) { battery, storage, permission, loading ->
-            LoadingData(battery, storage, permission, loading)
-        }
-    ) { gameData, deviceData ->
-        val (all, filters, selected, sort, sections) = gameData
-        val (battery, storage, permission, loading) = deviceData
+        allGames,
+        availableFilters,
+        selectedFilter,
+        prefs.selectedSort,
+        prefs.visibleSections,
+        batteryLevel,
+        storageUsage,
+        hasUsageStatsPermission,
+        isLoading
+    ) { params ->
+        val all = params[0] as List<GameEntry>
+        val filters = params[1] as List<GameFilter>
+        val selected = params[2] as GameFilter
+        val sort = params[3] as GameSortOption
+        val sections = params[4] as Set<LauncherSection>
+        val battery = params[5] as Int
+        val storage = params[6] as Int
+        val permission = params[7] as Boolean
+        val loading = params[8] as Boolean
+
         val visibleGames = all.filter { !it.isHidden }
 
         val filtered = when (selected) {
@@ -140,12 +150,14 @@ class GamesLauncherViewModel(
             hasUsageStatsPermission = permission,
             isLoading = loading
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = GamesLauncherUiState()
-    )
+    }.flowOn(Dispatchers.Default)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = GamesLauncherUiState()
+        )
 
+    /*
     private data class DataBundle(
         val all: List<GameEntry>,
         val filters: List<GameFilter>,
@@ -160,6 +172,7 @@ class GamesLauncherViewModel(
         val permission: Boolean,
         val loading: Boolean
     )
+    */
 
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {

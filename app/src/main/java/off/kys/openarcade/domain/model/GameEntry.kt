@@ -1,15 +1,14 @@
 package off.kys.openarcade.domain.model
 
-import android.graphics.drawable.Drawable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.room.Entity
-import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Entity(tableName = "games")
 @Serializable
+@Immutable
 data class GameEntry(
     @PrimaryKey val packageName: String,
     val title: String,
@@ -25,50 +24,13 @@ data class GameEntry(
     val isFavorite: Boolean = false,
     val customTitle: String? = null,
     val customIconPath: String? = null,
+    val cachedIconPath: String? = null,
+    val lastAppUpdateTime: Long = 0,
     val isHidden: Boolean = false,
-    val isManuallyAdded: Boolean = false,
-    @Ignore @Transient val icon: Drawable? = null
+    val isManuallyAdded: Boolean = false
 ) {
     val displayName: String
         get() = customTitle ?: title
-
-    // Required constructor for Room when using @Ignore on properties
-    constructor(
-        packageName: String,
-        title: String,
-        category: GameCategory,
-        isInstalled: Boolean = true,
-        primaryColorArgb: Int,
-        onPrimaryColorArgb: Int,
-        secondaryColorArgb: Int,
-        tertiaryColorArgb: Int,
-        customCategories: List<String> = emptyList(),
-        lastPlayed: Long = 0,
-        totalPlayTime: Long = 0,
-        isFavorite: Boolean = false,
-        customTitle: String? = null,
-        customIconPath: String? = null,
-        isHidden: Boolean = false,
-        isManuallyAdded: Boolean = false
-    ) : this(
-        packageName,
-        title,
-        category,
-        isInstalled,
-        primaryColorArgb,
-        onPrimaryColorArgb,
-        secondaryColorArgb,
-        tertiaryColorArgb,
-        customCategories,
-        lastPlayed,
-        totalPlayTime,
-        isFavorite,
-        customTitle,
-        customIconPath,
-        isHidden,
-        isManuallyAdded,
-        null
-    )
 
     fun getPrimaryColor(alpha: Float = 1f): Color = Color(primaryColorArgb).copy(alpha = alpha)
     fun getOnPrimaryColor(alpha: Float = 1f): Color = Color(onPrimaryColorArgb).copy(alpha = alpha)

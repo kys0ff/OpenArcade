@@ -46,8 +46,7 @@ class AppPickerViewModel(
             val apps = pm.queryIntentActivities(intent, 0).map {
                 AppInfo(
                     packageName = it.activityInfo.packageName,
-                    label = it.loadLabel(pm).toString(),
-                    icon = it.loadIcon(pm)
+                    label = it.loadLabel(pm).toString()
                 )
             }.sortedBy { it.label.lowercase() }
 

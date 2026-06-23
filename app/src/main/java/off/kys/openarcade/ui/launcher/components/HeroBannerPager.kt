@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -73,6 +74,15 @@ fun HeroBannerPager(
                 .height(300.dp)
         ) { page ->
             val game = installedGames[page]
+            val context = LocalContext.current
+            val iconModel = remember(game.packageName, game.customIconPath) {
+                game.customIconPath
+                    ?: try {
+                        context.packageManager.getApplicationIcon(game.packageName)
+                    } catch (_: Exception) {
+                        null
+                    }
+            }
             val pageOffset by remember(pagerState.currentPage) {
                 derivedStateOf { (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction }
             }
@@ -85,7 +95,7 @@ fun HeroBannerPager(
                 )
 
                 AsyncImage(
-                    model = game.customIconPath ?: game.icon,
+                    model = iconModel,
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxSize()

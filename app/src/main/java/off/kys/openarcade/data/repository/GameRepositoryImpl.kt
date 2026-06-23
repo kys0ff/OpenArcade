@@ -2,14 +2,12 @@ package off.kys.openarcade.data.repository
 
 import android.app.usage.UsageStatsManager
 import android.content.Context
-import android.content.pm.PackageManager
-import android.net.Uri
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import off.kys.openarcade.data.local.dao.GameDao
 import off.kys.openarcade.domain.model.AnalyticsData
@@ -21,7 +19,7 @@ import off.kys.openarcade.domain.model.TopGame
 import off.kys.openarcade.domain.repository.GameRepository
 import off.kys.openarcade.util.ColorExtractor
 import off.kys.openarcade.util.GameScanner
-import java.io.File
+import off.kys.openarcade.util.IconManager
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -32,31 +30,11 @@ class GameRepositoryImpl(
 ) : GameRepository {
 
     override fun getGames(): Flow<List<GameEntry>> {
-        val pm = context.packageManager
-        return gameDao.getAllGames().map { entities ->
-            entities.map { entity ->
-                val icon = try {
-                    pm.getApplicationIcon(entity.packageName)
-                } catch (_: PackageManager.NameNotFoundException) {
-                    null
-                }
-                entity.copy(icon = icon)
-            }
-        }
+        return gameDao.getAllGames()
     }
 
     override fun getGameByPackageName(packageName: String): Flow<GameEntry?> {
-        val pm = context.packageManager
-        return gameDao.getGameByPackageName(packageName).map { entity ->
-            entity?.let {
-                val icon = try {
-                    pm.getApplicationIcon(it.packageName)
-                } catch (_: PackageManager.NameNotFoundException) {
-                    null
-                }
-                it.copy(icon = icon)
-            }
-        }
+        return gameDao.getGameByPackageName(packageName)
     }
 
     override suspend fun refreshGames() = withContext(Dispatchers.IO) {
@@ -72,15 +50,28 @@ class GameRepositoryImpl(
             val existing = existingGames.find { it.packageName == scanned.packageName }
             val usage = stats[scanned.packageName]
             
+            val icon = try {
+                context.packageManager.getApplicationIcon(scanned.packageName)
+            } catch (_: Exception) {
+                null
+            }
+
+            val cachedIconPath = if (existing == null || existing.lastAppUpdateTime != scanned.lastAppUpdateTime || existing.cachedIconPath == null) {
+                icon?.let { IconManager.saveExtractedIcon(context, scanned.packageName, it) }
+            } else {
+                existing.cachedIconPath
+            }
+
             scanned.copy(
                 category = if (existing == null || existing.category == GameCategory.UNDEFINED) scanned.category else existing.category,
                 customCategories = existing?.customCategories ?: emptyList(),
-                primaryColorArgb = ColorExtractor.extractPrimaryColor(scanned.icon).toArgb(),
+                primaryColorArgb = ColorExtractor.extractPrimaryColor(icon).toArgb(),
                 lastPlayed = usage?.lastTimeUsed ?: 0L,
                 totalPlayTime = usage?.totalTimeInForeground ?: 0L,
                 isFavorite = existing?.isFavorite ?: false,
                 customTitle = existing?.customTitle,
                 customIconPath = existing?.customIconPath,
+                cachedIconPath = cachedIconPath,
                 isHidden = existing?.isHidden ?: false,
                 isManuallyAdded = existing?.isManuallyAdded ?: false
             )
@@ -120,51 +111,32 @@ class GameRepositoryImpl(
         return usageStatsManager.queryAndAggregateUsageStats(calendar.timeInMillis, System.currentTimeMillis())
     }
 
-    override suspend fun updateCustomCategories(packageName: String, customCategories: List<String>) {
+    override suspend fun updateCustomCategories(packageName: String, customCategories: List<String>) = withContext(Dispatchers.IO) {
         gameDao.updateCustomCategories(packageName, customCategories)
     }
 
-    override suspend fun updateFavoriteStatus(packageName: String, isFavorite: Boolean) {
+    override suspend fun updateFavoriteStatus(packageName: String, isFavorite: Boolean) = withContext(Dispatchers.IO) {
         gameDao.updateFavoriteStatus(packageName, isFavorite)
     }
 
-    override suspend fun updateCustomTitle(packageName: String, customTitle: String?) {
+    override suspend fun updateCustomTitle(packageName: String, customTitle: String?) = withContext(Dispatchers.IO) {
         gameDao.updateCustomTitle(packageName, customTitle)
     }
 
     override suspend fun updateCustomIconPath(packageName: String, customIconPath: String?) = withContext(Dispatchers.IO) {
         val finalPath = if (customIconPath?.startsWith("content://") == true) {
-            saveIconToInternalStorage(packageName, customIconPath.toUri())
+            IconManager.saveCustomIcon(context, packageName, customIconPath.toUri())
         } else {
             customIconPath
         }
         gameDao.updateCustomIconPath(packageName, finalPath)
     }
 
-    private fun saveIconToInternalStorage(packageName: String, uri: Uri): String? {
-        return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val iconDir = File(context.filesDir, "custom_icons")
-            if (!iconDir.exists()) iconDir.mkdirs()
-            
-            val file = File(iconDir, "${packageName}_icon.png")
-            inputStream?.use { input ->
-                file.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-            file.absolutePath
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-
-    override suspend fun updateVisibility(packageName: String, isHidden: Boolean) {
+    override suspend fun updateVisibility(packageName: String, isHidden: Boolean) = withContext(Dispatchers.IO) {
         gameDao.updateVisibility(packageName, isHidden)
     }
 
-    override suspend fun addGame(game: GameEntry) {
+    override suspend fun addGame(game: GameEntry) = withContext(Dispatchers.IO) {
         gameDao.insertGame(game)
     }
 
@@ -251,5 +223,5 @@ class GameRepositoryImpl(
             categoryDistribution = categoryDistribution,
             topGames = topGames
         ))
-    }
+    }.flowOn(Dispatchers.Default)
 }

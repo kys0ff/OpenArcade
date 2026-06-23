@@ -96,7 +96,7 @@ fun GameGridCard(
         Box {
             Column {
                 ArcadeGameIcon(
-                    icon = game.customIconPath ?: game.icon,
+                    icon = game.customIconPath ?: game.cachedIconPath ?: game.packageName,
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()

@@ -66,7 +66,7 @@ private fun FavoriteGameCard(
         accentColor = adaptiveTertiary,
     ) {
         ArcadeGameIcon(
-            icon = game.customIconPath ?: game.icon,
+            icon = game.customIconPath ?: game.cachedIconPath ?: game.packageName,
             contentDescription = game.displayName,
             modifier = Modifier.fillMaxSize(),
             primaryColor = adaptivePrimary,

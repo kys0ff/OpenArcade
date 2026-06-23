@@ -40,6 +40,11 @@ object GameScanner {
                 val title = appInfo.loadLabel(pm).toString()
                 val icon = appInfo.loadIcon(pm)
                 val packageName = appInfo.packageName
+                val lastUpdateTime = try {
+                    pm.getPackageInfo(packageName, 0).lastUpdateTime
+                } catch (_: Exception) {
+                    0L
+                }
 
                 val palette = try {
                     Palette.from(icon.toBitmap()).generate()
@@ -65,8 +70,8 @@ object GameScanner {
                         onPrimaryColorArgb = onPrimaryColor,
                         secondaryColorArgb = secondaryColor,
                         tertiaryColorArgb = tertiaryColor,
-                        isManuallyAdded = !isGame,
-                        icon = icon
+                        lastAppUpdateTime = lastUpdateTime,
+                        isManuallyAdded = !isGame
                     )
                 )
             }
@@ -88,8 +93,7 @@ object GameScanner {
                     primaryColorArgb = primaryColor,
                     onPrimaryColorArgb = primarySwatch?.titleTextColor ?: 0xFFFFFFFF.toInt(),
                     secondaryColorArgb = palette.mutedSwatch?.rgb ?: primaryColor,
-                    tertiaryColorArgb = palette.darkVibrantSwatch?.rgb ?: primaryColor,
-                    icon = icon
+                    tertiaryColorArgb = palette.darkVibrantSwatch?.rgb ?: primaryColor
                 )
             )
         }

@@ -9,6 +9,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -26,9 +27,13 @@ import off.kys.openarcade.ui.components.SectionHeader
 @Composable
 fun AnalyticsSection(games: List<GameEntry>, modifier: Modifier = Modifier) {
     val navigator = LocalNavigator.currentOrThrow
-    val totalPlayTimeMs = games.sumOf { it.totalPlayTime }
-    val totalPlayTimeHours = totalPlayTimeMs / (1000 * 60 * 60)
-    val totalPlayTimeMinutes = (totalPlayTimeMs / (1000 * 60)) % 60
+    
+    val (totalPlayTimeHours, totalPlayTimeMinutes) = remember(games) {
+        val totalPlayTimeMs = games.sumOf { it.totalPlayTime }
+        val hours = totalPlayTimeMs / (1000 * 60 * 60)
+        val minutes = (totalPlayTimeMs / (1000 * 60)) % 60
+        hours to minutes
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader(
