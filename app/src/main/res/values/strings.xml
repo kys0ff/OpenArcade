@@ -79,4 +79,6 @@
     <string name="top_games">Top Games</string>
     <string name="daily">Daily</string>
     <string name="weekly">Weekly</string>
+    <string name="customize_home">Customize Home</string>
+    <string name="customize_home_subtitle">Show or hide dashboard sections</string>
 </resources>

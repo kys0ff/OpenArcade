@@ -28,6 +28,7 @@ import off.kys.openarcade.domain.model.GameCategory
 import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.model.GameFilter
 import off.kys.openarcade.domain.model.GameSortOption
+import off.kys.openarcade.domain.model.LauncherSection
 import off.kys.openarcade.domain.repository.GameRepository
 import off.kys.openarcade.domain.usecase.GetGamesUseCase
 import off.kys.openarcade.domain.usecase.RefreshAllGameStatsUseCase
@@ -87,8 +88,8 @@ class GamesLauncherViewModel(
     private val isLoading = MutableStateFlow(true)
 
     val uiState: StateFlow<GamesLauncherUiState> = combine(
-        combine(allGames, availableFilters, selectedFilter, prefs.selectedSort) { all, filters, selected, sort ->
-            DataBundle(all, filters, selected, sort)
+        combine(allGames, availableFilters, selectedFilter, prefs.selectedSort, prefs.visibleSections) { all, filters, selected, sort, sections ->
+            DataBundle(all, filters, selected, sort, sections)
         },
         combine(
             batteryLevel,
@@ -99,7 +100,7 @@ class GamesLauncherViewModel(
             LoadingData(battery, storage, permission, loading)
         }
     ) { gameData, deviceData ->
-        val (all, filters, selected, sort) = gameData
+        val (all, filters, selected, sort, sections) = gameData
         val (battery, storage, permission, loading) = deviceData
         val visibleGames = all.filter { !it.isHidden }
 
@@ -133,6 +134,7 @@ class GamesLauncherViewModel(
             filters = filters,
             selectedFilter = selected,
             selectedSort = sort,
+            visibleSections = sections,
             batteryLevel = battery,
             storageUsage = storage,
             hasUsageStatsPermission = permission,
@@ -148,7 +150,8 @@ class GamesLauncherViewModel(
         val all: List<GameEntry>,
         val filters: List<GameFilter>,
         val selected: GameFilter,
-        val sort: GameSortOption
+        val sort: GameSortOption,
+        val sections: Set<LauncherSection>
     )
 
     private data class LoadingData(
@@ -187,6 +190,10 @@ class GamesLauncherViewModel(
 
         is GamesLauncherUiEvent.SortSelected -> {
             prefs.setSortOption(event.sort)
+        }
+
+        is GamesLauncherUiEvent.SectionVisibilityToggled -> {
+            prefs.setSectionVisible(event.section, event.isVisible)
         }
 
         is GamesLauncherUiEvent.RefreshRequested -> refreshGames()

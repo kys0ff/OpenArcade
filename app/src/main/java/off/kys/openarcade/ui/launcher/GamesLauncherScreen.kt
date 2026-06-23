@@ -15,6 +15,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -23,6 +26,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import off.kys.openarcade.domain.model.LauncherSection
 import off.kys.openarcade.ui.app_picker.AppPickerScreen
 import off.kys.openarcade.ui.detail.GameDetailScreen
 import off.kys.openarcade.ui.launcher.components.AnalyticsSection
@@ -33,6 +37,7 @@ import off.kys.openarcade.ui.launcher.components.GameGridCard
 import off.kys.openarcade.ui.launcher.components.HeroBannerPager
 import off.kys.openarcade.ui.launcher.components.LibraryHeader
 import off.kys.openarcade.ui.launcher.components.RecentActivitySection
+import off.kys.openarcade.ui.launcher.components.SectionEditBottomSheet
 import off.kys.openarcade.ui.launcher.components.SystemStatusSection
 import off.kys.openarcade.ui.launcher.components.UsagePermissionCard
 import off.kys.openarcade.ui.main.MainActivity
@@ -40,6 +45,7 @@ import org.koin.androidx.compose.koinViewModel
 
 class GamesLauncherScreen : Screen {
 
+    @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
@@ -49,9 +55,21 @@ class GamesLauncherScreen : Screen {
         )
         val uiState by viewModel.uiState.collectAsState()
 
+        var showSectionEdit by remember { mutableStateOf(false) }
+
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
             viewModel.onEvent(GamesLauncherUiEvent.PermissionCheckRequested)
             viewModel.onEvent(GamesLauncherUiEvent.RefreshStats)
+        }
+
+        if (showSectionEdit) {
+            SectionEditBottomSheet(
+                visibleSections = uiState.visibleSections,
+                onDismissRequest = { showSectionEdit = false },
+                onToggleSection = { section, visible ->
+                    viewModel.onEvent(GamesLauncherUiEvent.SectionVisibilityToggled(section, visible))
+                }
+            )
         }
 
         Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
@@ -89,7 +107,9 @@ class GamesLauncherScreen : Screen {
                             uiState = uiState,
                             onFilterSelected = { filter ->
                                 viewModel.onEvent(GamesLauncherUiEvent.FilterSelected(filter))
-                            }
+                            },
+                            onSettingsClick = { /* TODO: Implement on settings click */ },
+                            onSectionsEdit = { showSectionEdit = true }
                         )
                     }
 
@@ -102,18 +122,22 @@ class GamesLauncherScreen : Screen {
                         }
                     }
 
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        SystemStatusSection(
-                            batteryLevel = uiState.batteryLevel,
-                            storageUsage = uiState.storageUsage
-                        )
+                    if (LauncherSection.SYSTEM_STATUS in uiState.visibleSections) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            SystemStatusSection(
+                                batteryLevel = uiState.batteryLevel,
+                                storageUsage = uiState.storageUsage
+                            )
+                        }
                     }
 
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        AnalyticsSection(uiState.filteredGames)
+                    if (LauncherSection.ANALYTICS in uiState.visibleSections) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            AnalyticsSection(uiState.filteredGames)
+                        }
                     }
 
-                    if (uiState.favoriteGames.isNotEmpty()) {
+                    if (LauncherSection.FAVORITES in uiState.visibleSections && uiState.favoriteGames.isNotEmpty()) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             FavoritesSection(
                                 games = uiState.favoriteGames,
@@ -125,7 +149,7 @@ class GamesLauncherScreen : Screen {
                         }
                     }
 
-                    if (uiState.recentGames.isNotEmpty()) {
+                    if (LauncherSection.RECENT_ACTIVITY in uiState.visibleSections && uiState.recentGames.isNotEmpty()) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             RecentActivitySection(
                                 games = uiState.recentGames,

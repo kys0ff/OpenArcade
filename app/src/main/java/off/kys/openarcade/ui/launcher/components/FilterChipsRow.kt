@@ -9,11 +9,14 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,8 +27,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,53 +48,181 @@ import off.kys.openarcade.domain.model.GameFilter
 import off.kys.openarcade.ui.launcher.GamesLauncherUiState
 import off.kys.openarcade.ui.theme.OpenArcadeTheme
 
-@Composable
-fun FilterChipsRow(
-    uiState: GamesLauncherUiState,
-    onFilterSelected: (GameFilter) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(vertical = 8.dp),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        items(
-            count = uiState.filters.size,
-            key = { index ->
-                when (val filter = uiState.filters[index]) {
-                    is GameFilter.All -> "all"
-                    is GameFilter.Installed -> "installed"
-                    is GameFilter.Uninstalled -> "uninstalled"
-                    is GameFilter.System -> "system_${filter.category.name}"
-                    is GameFilter.Custom -> "custom_${filter.name}"
-                    is GameFilter.Hidden -> "hidden"
-                }
-            }
-        ) { index ->
-            val filter = uiState.filters[index]
-
-            ArcadeFilterChip(
-                label = when (filter) {
-                    is GameFilter.All -> stringResource(R.string.filter_all)
-                    is GameFilter.Installed -> stringResource(R.string.category_installed)
-                    is GameFilter.Uninstalled -> stringResource(R.string.category_uninstalled)
-                    is GameFilter.System -> stringResource(filter.category.displayNameRes)
-                    is GameFilter.Custom -> filter.name
-                    is GameFilter.Hidden -> stringResource(R.string.filter_hidden)
-                },
-                selected = uiState.selectedFilter == filter,
-                onClick = { onFilterSelected(filter) }
-            )
-        }
-    }
-}
 
 private val ChipHeight = 32.dp
 private val ChipHorizontalPadding = 12.dp
 private val ChipIconSize = 16.dp
 private val ChipIconSpacing = 4.dp
 private const val AnimDuration = 200
+
+private val TrailingClusterWidth = 80.dp
+private val ScrimWidth = 48.dp
+
+
+@Composable
+fun FilterChipsRow(
+    modifier: Modifier = Modifier,
+    uiState: GamesLauncherUiState,
+    onFilterSelected: (GameFilter) -> Unit,
+    onSettingsClick: () -> Unit,
+    onSectionsEdit: () -> Unit
+) {
+    val background = MaterialTheme.colorScheme.background
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(ChipHeight + 16.dp)
+    ) {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(
+                start = 0.dp,
+                end = TrailingClusterWidth,
+                top = 8.dp,
+                bottom = 8.dp
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(
+                count = uiState.filters.size,
+                key = { index ->
+                    when (val filter = uiState.filters[index]) {
+                        is GameFilter.All -> "all"
+                        is GameFilter.Installed -> "installed"
+                        is GameFilter.Uninstalled -> "uninstalled"
+                        is GameFilter.System -> "system_${filter.category.name}"
+                        is GameFilter.Custom -> "custom_${filter.name}"
+                        is GameFilter.Hidden -> "hidden"
+                    }
+                }
+            ) { index ->
+                val filter = uiState.filters[index]
+                ArcadeFilterChip(
+                    label = when (filter) {
+                        is GameFilter.All -> stringResource(R.string.filter_all)
+                        is GameFilter.Installed -> stringResource(R.string.category_installed)
+                        is GameFilter.Uninstalled -> stringResource(R.string.category_uninstalled)
+                        is GameFilter.System -> stringResource(filter.category.displayNameRes)
+                        is GameFilter.Custom -> filter.name
+                        is GameFilter.Hidden -> stringResource(R.string.filter_hidden)
+                    },
+                    selected = uiState.selectedFilter == filter,
+                    onClick = { onFilterSelected(filter) }
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .width(TrailingClusterWidth + ScrimWidth)
+                .fillMaxHeight()
+                .background(
+                    Brush.horizontalGradient(
+                        0.00f to Color.Transparent,
+                        0.45f to background.copy(alpha = 0.85f),
+                        1.00f to background
+                    )
+                )
+        )
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ChipActionButton(
+                iconRes = R.drawable.round_settings_24,
+                contentDescription = "Settings",
+                onClick = onSettingsClick
+            )
+
+            ChipActionButton(
+                iconRes = R.drawable.round_category_24,
+                contentDescription = "Edit sections",
+                onClick = onSectionsEdit,
+                isPrimary = false
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChipActionButton(
+    iconRes: Int,
+    contentDescription: String,
+    onClick: () -> Unit,
+    isPrimary: Boolean = true
+) {
+    val primary = MaterialTheme.colorScheme.primary
+    val tertiary = MaterialTheme.colorScheme.tertiary
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val containerColor by animateColorAsState(
+        targetValue = when {
+            isPrimary -> MaterialTheme.colorScheme.primaryContainer.copy(
+                alpha = if (isPressed) 0.90f else 0.72f
+            )
+
+            else -> MaterialTheme.colorScheme.surfaceContainerLow
+        },
+        animationSpec = tween(AnimDuration),
+        label = "actionBtnContainer"
+    )
+
+    val iconTint by animateColorAsState(
+        targetValue = if (isPrimary) {
+            if (isPressed) primary else MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            if (isPressed) primary else MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = tween(AnimDuration),
+        label = "actionBtnIcon"
+    )
+
+    val borderBrush = if (isPrimary) {
+        Brush.linearGradient(
+            listOf(
+                primary.copy(alpha = if (isPressed) 1.00f else 0.85f),
+                tertiary.copy(alpha = if (isPressed) 0.65f else 0.40f),
+                Color.Transparent
+            )
+        )
+    } else {
+        Brush.linearGradient(
+            listOf(
+                tertiary.copy(alpha = if (isPressed) 0.55f else 0.30f),
+                Color.Transparent
+            )
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .size(ChipHeight)
+            .clip(CircleShape)
+            .background(containerColor, CircleShape)
+            .border(1.dp, borderBrush, CircleShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(bounded = true),
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = contentDescription,
+            tint = iconTint,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}
 
 @Composable
 fun ArcadeFilterChip(
@@ -110,13 +243,11 @@ fun ArcadeFilterChip(
         animationSpec = tween(AnimDuration),
         label = "chipContainer"
     )
-
     val labelColor by animateColorAsState(
         targetValue = if (selected) onPrimaryContainer else onSurfaceVariant,
         animationSpec = tween(AnimDuration),
         label = "chipLabel"
     )
-
     val iconTint by animateColorAsState(
         targetValue = if (selected) primary else Color.Transparent,
         animationSpec = tween(AnimDuration),
@@ -160,7 +291,6 @@ fun ArcadeFilterChip(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            // Keep the Box in layout framework to read the animating width values smoothly
             Box(
                 modifier = Modifier
                     .width(leadingSlotWidth)
@@ -169,8 +299,8 @@ fun ArcadeFilterChip(
             ) {
                 this@Row.AnimatedVisibility(
                     visible = selected,
-                    enter = fadeIn(animationSpec = tween(AnimDuration)),
-                    exit = fadeOut(animationSpec = tween(AnimDuration))
+                    enter = fadeIn(tween(AnimDuration)),
+                    exit = fadeOut(tween(AnimDuration))
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -213,7 +343,9 @@ fun FilterChipsRowPreview() {
                 ),
                 selectedFilter = GameFilter.All
             ),
-            onFilterSelected = {}
+            onFilterSelected = {},
+            onSettingsClick = {},
+            onSectionsEdit = {}
         )
     }
 }

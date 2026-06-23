@@ -2,10 +2,12 @@ package off.kys.openarcade.ui.launcher
 
 import off.kys.openarcade.domain.model.GameFilter
 import off.kys.openarcade.domain.model.GameSortOption
+import off.kys.openarcade.domain.model.LauncherSection
 
 sealed interface GamesLauncherUiEvent {
     data class FilterSelected(val filter: GameFilter) : GamesLauncherUiEvent
     data class SortSelected(val sort: GameSortOption) : GamesLauncherUiEvent
+    data class SectionVisibilityToggled(val section: LauncherSection, val isVisible: Boolean) : GamesLauncherUiEvent
     data class GameClicked(val packageName: String) : GamesLauncherUiEvent
     data object GrantPermissionClicked : GamesLauncherUiEvent
     data object RefreshRequested : GamesLauncherUiEvent
