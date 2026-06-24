@@ -25,10 +25,15 @@ object GameScanner {
         }
 
         val detectedGames = mutableListOf<GameEntry>()
+        val seenPackages = mutableSetOf<String>()
 
         for (resolveInfo in launcherActivities) {
             val activityInfo = resolveInfo.activityInfo
             val appInfo = activityInfo.applicationInfo
+            val packageName = appInfo.packageName
+            
+            if (seenPackages.contains(packageName)) continue
+
             val isGame = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 appInfo.category == ApplicationInfo.CATEGORY_GAME
             } else {
@@ -36,10 +41,10 @@ object GameScanner {
                 (appInfo.flags and ApplicationInfo.FLAG_IS_GAME) != 0
             }
 
-            if (isGame || extraPackages.contains(appInfo.packageName)) {
+            if (isGame || extraPackages.contains(packageName)) {
                 val title = appInfo.loadLabel(pm).toString()
                 val icon = appInfo.loadIcon(pm)
-                val packageName = appInfo.packageName
+                
                 val lastUpdateTime = try {
                     pm.getPackageInfo(packageName, 0).lastUpdateTime
                 } catch (_: Exception) {
@@ -64,7 +69,7 @@ object GameScanner {
                     GameEntry(
                         packageName = packageName,
                         title = title,
-                        category = if (isGame) GameCategory.GAME else GameCategory.UTILITY,
+                        category = if (isGame) GameCategory.UNDEFINED else GameCategory.UTILITY,
                         isInstalled = true,
                         primaryColorArgb = primaryColor,
                         onPrimaryColorArgb = onPrimaryColor,
@@ -74,6 +79,7 @@ object GameScanner {
                         isManuallyAdded = !isGame
                     )
                 )
+                seenPackages.add(packageName)
             }
         }
 

@@ -7,6 +7,5 @@ import off.kys.openarcade.R
 @Serializable
 enum class GameCategory(@param:StringRes val displayNameRes: Int) {
     UNDEFINED(R.string.category_undefined),
-    GAME(R.string.category_game),
     UTILITY(R.string.category_utility)
 }

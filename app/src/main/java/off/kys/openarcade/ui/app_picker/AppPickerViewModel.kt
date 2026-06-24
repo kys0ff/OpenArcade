@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import off.kys.openarcade.data.local.ArcadePreferences
 import off.kys.openarcade.domain.model.GameCategory
 import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.repository.GameRepository
@@ -17,7 +18,8 @@ import off.kys.openarcade.domain.usecase.RefreshGamesUseCase
 class AppPickerViewModel(
     private val application: Application,
     private val gameRepository: GameRepository,
-    private val refreshGamesUseCase: RefreshGamesUseCase
+    private val refreshGamesUseCase: RefreshGamesUseCase,
+    private val prefs: ArcadePreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AppPickerUiState(isLoading = true))
@@ -26,6 +28,20 @@ class AppPickerViewModel(
     init {
         loadApps()
         observeTrackedGames()
+        observePreferences()
+    }
+
+    private fun observePreferences() {
+        viewModelScope.launch {
+            prefs.showScrollbar.collect { show ->
+                _uiState.update { it.copy(showScrollbar = show) }
+            }
+        }
+        viewModelScope.launch {
+            prefs.hapticFeedback.collect { enabled ->
+                _uiState.update { it.copy(hapticFeedback = enabled) }
+            }
+        }
     }
 
     private fun observeTrackedGames() {
@@ -43,12 +59,15 @@ class AppPickerViewModel(
             val intent = Intent(Intent.ACTION_MAIN, null).apply {
                 addCategory(Intent.CATEGORY_LAUNCHER)
             }
-            val apps = pm.queryIntentActivities(intent, 0).map {
-                AppInfo(
-                    packageName = it.activityInfo.packageName,
-                    label = it.loadLabel(pm).toString()
-                )
-            }.sortedBy { it.label.lowercase() }
+            val apps = pm.queryIntentActivities(intent, 0)
+                .map {
+                    AppInfo(
+                        packageName = it.activityInfo.packageName,
+                        label = it.loadLabel(pm).toString()
+                    )
+                }
+                .distinctBy { it.packageName }
+                .sortedBy { it.label.lowercase() }
 
             _uiState.update { it.copy(apps = apps, isLoading = false) }
         }

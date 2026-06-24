@@ -34,8 +34,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,8 +50,10 @@ import off.kys.openarcade.ui.app_picker.AppInfo
 fun AppItem(
     app: AppInfo,
     isSelected: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    hapticFeedbackEnabled: Boolean = true
 ) {
+    val haptic = LocalHapticFeedback.current
     val primary = MaterialTheme.colorScheme.primary
     val tertiary = MaterialTheme.colorScheme.tertiary
 
@@ -94,7 +98,12 @@ fun AppItem(
             .clip(MaterialTheme.shapes.medium)
             .background(containerColor, MaterialTheme.shapes.medium)
             .border(1.dp, borderBrush, MaterialTheme.shapes.medium)
-            .clickable(onClick = onToggle)
+            .clickable {
+                if (hapticFeedbackEnabled) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                }
+                onToggle()
+            }
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

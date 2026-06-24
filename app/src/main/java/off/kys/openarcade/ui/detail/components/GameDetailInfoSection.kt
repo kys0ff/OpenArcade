@@ -44,7 +44,7 @@ fun GameDetailInfoSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val systemCategory = if (currentGame.category.displayNameRes != 0) {
                 listOf(stringResource(currentGame.category.displayNameRes))
@@ -56,8 +56,6 @@ fun GameDetailInfoSection(
                     systemCategory + currentGame.customCategories
                 },
                 accentColor = tertiaryColor,
-                isFirst = true,
-                isLast = false,
                 onClick = onCategoryClick
             )
 
@@ -73,8 +71,6 @@ fun GameDetailInfoSection(
                 } else {
                     MaterialTheme.colorScheme.error
                 },
-                isFirst = false,
-                isLast = false,
                 onClick = null
             )
 
@@ -84,8 +80,6 @@ fun GameDetailInfoSection(
                     TimeUtils.formatLastPlayed(context, currentGame.lastPlayed)
                 },
                 valueColor = MaterialTheme.colorScheme.onSurface,
-                isFirst = false,
-                isLast = false,
                 onClick = null
             )
 
@@ -95,8 +89,6 @@ fun GameDetailInfoSection(
                     TimeUtils.formatTotalPlayTime(context, currentGame.totalPlayTime)
                 },
                 valueColor = MaterialTheme.colorScheme.onSurface,
-                isFirst = false,
-                isLast = false,
                 onClick = null
             )
 
@@ -104,8 +96,6 @@ fun GameDetailInfoSection(
                 label = stringResource(R.string.game_detail_label_package),
                 value = currentGame.packageName,
                 valueColor = MaterialTheme.colorScheme.onSurface,
-                isFirst = false,
-                isLast = true,
                 onClick = null
             )
         }

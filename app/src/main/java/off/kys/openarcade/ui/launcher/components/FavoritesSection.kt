@@ -14,6 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import off.kys.openarcade.R
 import off.kys.openarcade.domain.model.GameEntry
@@ -26,7 +28,8 @@ import off.kys.openarcade.util.ColorExtractor
 fun FavoritesSection(
     games: List<GameEntry>,
     onGameClick: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hapticFeedbackEnabled: Boolean = true
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
 
@@ -44,7 +47,8 @@ fun FavoritesSection(
             items(games, key = { "fav_${it.packageName}" }) { game ->
                 FavoriteGameCard(
                     game = game,
-                    onClick = { onGameClick(game.packageName) }
+                    onClick = { onGameClick(game.packageName) },
+                    hapticFeedbackEnabled = hapticFeedbackEnabled
                 )
             }
         }
@@ -54,14 +58,21 @@ fun FavoritesSection(
 @Composable
 private fun FavoriteGameCard(
     game: GameEntry,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    hapticFeedbackEnabled: Boolean = true
 ) {
+    val haptic = LocalHapticFeedback.current
     val isDark = isSystemInDarkTheme()
     val adaptivePrimary = ColorExtractor.getAdaptiveColor(game.getPrimaryColor(), isDark)
     val adaptiveTertiary = ColorExtractor.getAdaptiveColor(game.getTertiaryColor(), isDark)
 
     ArcadeCard(
-        onClick = onClick,
+        onClick = {
+            if (hapticFeedbackEnabled) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
+            onClick()
+        },
         modifier = Modifier.size(72.dp),
         accentColor = adaptiveTertiary,
     ) {

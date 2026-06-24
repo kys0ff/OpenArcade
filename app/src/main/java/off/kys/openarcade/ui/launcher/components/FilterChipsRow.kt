@@ -27,7 +27,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -37,6 +36,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -67,6 +68,7 @@ fun FilterChipsRow(
     onSettingsClick: () -> Unit,
     onSectionsEdit: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val background = MaterialTheme.colorScheme.background
 
     Box(
@@ -108,7 +110,12 @@ fun FilterChipsRow(
                         is GameFilter.Hidden -> stringResource(R.string.filter_hidden)
                     },
                     selected = uiState.selectedFilter == filter,
-                    onClick = { onFilterSelected(filter) }
+                    onClick = {
+                        if (uiState.hapticFeedback) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                        onFilterSelected(filter)
+                    }
                 )
             }
         }
@@ -137,13 +144,23 @@ fun FilterChipsRow(
             ChipActionButton(
                 iconRes = R.drawable.round_settings_24,
                 contentDescription = "Settings",
-                onClick = onSettingsClick
+                onClick = {
+                    if (uiState.hapticFeedback) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                    onSettingsClick()
+                }
             )
 
             ChipActionButton(
                 iconRes = R.drawable.round_category_24,
                 contentDescription = "Edit sections",
-                onClick = onSectionsEdit,
+                onClick = {
+                    if (uiState.hapticFeedback) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                    onSectionsEdit()
+                },
                 isPrimary = false
             )
         }
@@ -210,7 +227,7 @@ private fun ChipActionButton(
             .border(1.dp, borderBrush, CircleShape)
             .clickable(
                 interactionSource = interactionSource,
-                indication = ripple(bounded = true),
+                indication = null,
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center
@@ -238,8 +255,14 @@ fun ArcadeFilterChip(
     val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
     val containerColor by animateColorAsState(
-        targetValue = if (selected) primaryContainer.copy(alpha = 0.72f) else surfaceContainerLow,
+        targetValue = when {
+            selected -> primaryContainer.copy(alpha = if (isPressed) 0.85f else 0.72f)
+            else -> if (isPressed) surfaceContainerLow.copy(alpha = 0.8f) else surfaceContainerLow
+        },
         animationSpec = tween(AnimDuration),
         label = "chipContainer"
     )
@@ -257,15 +280,15 @@ fun ArcadeFilterChip(
     val borderBrush = if (selected) {
         Brush.linearGradient(
             listOf(
-                primary.copy(alpha = 0.85f),
-                tertiary.copy(alpha = 0.40f),
+                primary.copy(alpha = if (isPressed) 1.00f else 0.85f),
+                tertiary.copy(alpha = if (isPressed) 0.65f else 0.40f),
                 Color.Transparent
             )
         )
     } else {
         Brush.linearGradient(
             listOf(
-                tertiary.copy(alpha = 0.30f),
+                tertiary.copy(alpha = if (isPressed) 0.55f else 0.30f),
                 Color.Transparent
             )
         )
@@ -283,7 +306,11 @@ fun ArcadeFilterChip(
             .clip(CircleShape)
             .background(containerColor, CircleShape)
             .border(width = 1.dp, brush = borderBrush, shape = CircleShape)
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
             .padding(horizontal = ChipHorizontalPadding),
         contentAlignment = Alignment.Center
     ) {
@@ -336,7 +363,6 @@ fun FilterChipsRowPreview() {
                     GameFilter.All,
                     GameFilter.Installed,
                     GameFilter.Uninstalled,
-                    GameFilter.System(GameCategory.GAME),
                     GameFilter.System(GameCategory.UTILITY),
                     GameFilter.Custom("Favorites"),
                     GameFilter.Custom("Action")

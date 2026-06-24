@@ -81,7 +81,7 @@ fun GameDetailHeader(
                             Color.Transparent
                         )
                     ),
-                    width = 1.5.dp
+                    width = 1.dp
                 ),
                 modifier = Modifier.size(136.dp)
             ) {
@@ -118,7 +118,7 @@ fun GameDetailHeader(
         Text(
             text = currentGame.packageName,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

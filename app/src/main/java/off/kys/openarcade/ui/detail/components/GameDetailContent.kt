@@ -28,10 +28,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.Navigator
 import off.kys.openarcade.domain.model.GameEntry
+import off.kys.openarcade.ui.components.ArcadeScrollStateScrollbar
 import off.kys.openarcade.ui.detail.GameDetailUiEvent
 import off.kys.openarcade.ui.detail.GameDetailUiState
 import off.kys.openarcade.util.ColorExtractor
@@ -44,22 +47,20 @@ fun GameDetailContent(
     navigator: Navigator,
     onEvent: (GameDetailUiEvent) -> Unit
 ) {
-    // 1. Color Extraction Logic
     val isDark = isSystemInDarkTheme()
     val dominantColor = remember(currentGame.primaryColorArgb, isDark) {
         ColorExtractor.getAdaptiveColor(currentGame.getPrimaryColor(), isDark)
     }
-    val onDominantColor = currentGame.getOnPrimaryColor()
     val secondaryColor = remember(currentGame.secondaryColorArgb, isDark) {
         ColorExtractor.getAdaptiveColor(currentGame.getSecondaryColor(), isDark)
     }
     val tertiaryColor = remember(currentGame.tertiaryColorArgb, isDark) {
-        ColorExtractor.getAdaptiveColor(currentGame.getSecondaryColor(), isDark)
+        ColorExtractor.getAdaptiveColor(currentGame.getTertiaryColor(), isDark)
     }
 
-    // 2. Animations & Layout States
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollState = rememberScrollState()
+    val haptic = LocalHapticFeedback.current
 
     val infiniteTransition = rememberInfiniteTransition(label = "halo_pulse")
     val haloAlpha by infiniteTransition.animateFloat(
@@ -72,7 +73,6 @@ fun GameDetailContent(
         label = "haloAlpha"
     )
 
-    // 3. Dialogs
     if (uiState.showCategoryDialog) {
         GameCategoryDialog(
             editingCategories = uiState.editingCategories,
@@ -86,21 +86,24 @@ fun GameDetailContent(
         )
     }
 
-    // 4. Main Layout Structural Frame
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             GameDetailTopAppBar(
                 title = currentGame.displayName,
-                onBackClick = { navigator.pop() },
+                onBackClick = {
+                    if (uiState.hapticFeedback) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                    navigator.pop()
+                },
                 scrollBehavior = scrollBehavior
             )
         }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
 
-            // Background Layer
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -116,7 +119,6 @@ fun GameDetailContent(
                     )
             )
 
-            // Content Scroll Layer
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -137,11 +139,18 @@ fun GameDetailContent(
 
                 GameDetailActions(
                     currentGame = currentGame,
-                    dominantColor = dominantColor,
-                    onDominantColor = onDominantColor,
-                    tertiaryColor = tertiaryColor,
-                    onLaunchClick = { onEvent(GameDetailUiEvent.LaunchGame) },
-                    onTagsClick = { onEvent(GameDetailUiEvent.OpenCategoryDialog) }
+                    onLaunchClick = {
+                        if (uiState.hapticFeedback) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                        onEvent(GameDetailUiEvent.LaunchGame)
+                    },
+                    onTagsClick = {
+                        if (uiState.hapticFeedback) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                        onEvent(GameDetailUiEvent.OpenCategoryDialog)
+                    }
                 )
 
                 Spacer(Modifier.height(36.dp))
@@ -150,10 +159,26 @@ fun GameDetailContent(
                     currentGame = currentGame,
                     secondaryColor = secondaryColor,
                     tertiaryColor = tertiaryColor,
-                    onCategoryClick = { onEvent(GameDetailUiEvent.OpenCategoryDialog) }
+                    onCategoryClick = {
+                        if (uiState.hapticFeedback) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                        onEvent(GameDetailUiEvent.OpenCategoryDialog)
+                    }
                 )
 
                 Spacer(Modifier.height(48.dp))
+            }
+
+            if (uiState.showScrollbar) {
+                ArcadeScrollStateScrollbar(
+                    scrollState = scrollState,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxSize()
+                        .padding(top = innerPadding.calculateTopPadding())
+                        .padding(end = 16.dp)
+                )
             }
         }
     }

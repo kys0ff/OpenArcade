@@ -35,6 +35,8 @@ import off.kys.openarcade.domain.repository.GameRepository
 import off.kys.openarcade.domain.usecase.GetGamesUseCase
 import off.kys.openarcade.domain.usecase.RefreshAllGameStatsUseCase
 import off.kys.openarcade.domain.usecase.RefreshGamesUseCase
+import off.kys.openarcade.ui.settings.GridColumns
+import off.kys.openarcade.ui.settings.ScreenOrientation
 import java.io.File
 
 class GamesLauncherViewModel(
@@ -97,6 +99,12 @@ class GamesLauncherViewModel(
         selectedFilter,
         prefs.selectedSort,
         prefs.visibleSections,
+        prefs.gridColumns,
+        prefs.screenOrientation,
+        prefs.immersiveMode,
+        prefs.keepScreenOn,
+        prefs.showScrollbar,
+        prefs.hapticFeedback,
         batteryLevel,
         storageUsage,
         hasUsageStatsPermission,
@@ -107,10 +115,16 @@ class GamesLauncherViewModel(
         val selected = params[2] as GameFilter
         val sort = params[3] as GameSortOption
         val sections = params[4] as Set<LauncherSection>
-        val battery = params[5] as Int
-        val storage = params[6] as Int
-        val permission = params[7] as Boolean
-        val loading = params[8] as Boolean
+        val gridCols = params[5] as GridColumns
+        val orientation = params[6] as ScreenOrientation
+        val immersive = params[7] as Boolean
+        val keepOn = params[8] as Boolean
+        val scrollbar = params[9] as Boolean
+        val haptic = params[10] as Boolean
+        val battery = params[11] as Int
+        val storage = params[12] as Int
+        val permission = params[13] as Boolean
+        val loading = params[14] as Boolean
 
         val visibleGames = all.filter { !it.isHidden }
 
@@ -145,6 +159,12 @@ class GamesLauncherViewModel(
             selectedFilter = selected,
             selectedSort = sort,
             visibleSections = sections,
+            gridColumns = gridCols,
+            screenOrientation = orientation,
+            immersiveMode = immersive,
+            keepScreenOn = keepOn,
+            showScrollbar = scrollbar,
+            hapticFeedback = haptic,
             batteryLevel = battery,
             storageUsage = storage,
             hasUsageStatsPermission = permission,
@@ -156,23 +176,6 @@ class GamesLauncherViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = GamesLauncherUiState()
         )
-
-    /*
-    private data class DataBundle(
-        val all: List<GameEntry>,
-        val filters: List<GameFilter>,
-        val selected: GameFilter,
-        val sort: GameSortOption,
-        val sections: Set<LauncherSection>
-    )
-
-    private data class LoadingData(
-        val battery: Int,
-        val storage: Int,
-        val permission: Boolean,
-        val loading: Boolean
-    )
-    */
 
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {

@@ -1,6 +1,8 @@
 package off.kys.openarcade.ui.detail
 
 import android.app.Application
+import android.content.Intent
+import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,6 +12,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import off.kys.openarcade.data.local.ArcadePreferences
 import off.kys.openarcade.domain.usecase.GetGameByPackageUseCase
 import off.kys.openarcade.domain.usecase.RefreshGameStatsUseCase
 import off.kys.openarcade.domain.usecase.UpdateGameCategoryUseCase
@@ -19,15 +22,22 @@ class GameDetailViewModel(
     application: Application,
     getGameByPackageUseCase: GetGameByPackageUseCase,
     private val updateGameCategoryUseCase: UpdateGameCategoryUseCase,
-    private val refreshGameStatsUseCase: RefreshGameStatsUseCase
+    private val refreshGameStatsUseCase: RefreshGameStatsUseCase,
+    prefs: ArcadePreferences
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(GameDetailUiState())
     val uiState: StateFlow<GameDetailUiState> = combine(
         getGameByPackageUseCase(packageName),
+        prefs.showScrollbar,
+        prefs.hapticFeedback,
         _uiState
-    ) { game, state ->
-        state.copy(game = game)
+    ) { game, showScrollbar, haptic, state ->
+        state.copy(
+            game = game,
+            showScrollbar = showScrollbar,
+            hapticFeedback = haptic
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -78,9 +88,27 @@ class GameDetailViewModel(
 
     private fun launchGame() {
         val application = getApplication<Application>()
-        val launchIntent = application.packageManager.getLaunchIntentForPackage(packageName)
-        if (launchIntent != null) {
-            application.startActivity(launchIntent)
+        val game = uiState.value.game ?: return
+
+        if (game.isInstalled) {
+            val launchIntent = application.packageManager.getLaunchIntentForPackage(packageName)
+            if (launchIntent != null) {
+                application.startActivity(launchIntent)
+            }
+        } else {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = "market://details?id=$packageName".toUri()
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            try {
+                application.startActivity(intent)
+            } catch (_: Exception) {
+                val webIntent = Intent(Intent.ACTION_VIEW).apply {
+                    data = "https://play.google.com/store/apps/details?id=$packageName".toUri()
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                application.startActivity(webIntent)
+            }
         }
     }
 

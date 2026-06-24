@@ -29,7 +29,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,9 +50,11 @@ fun GameGridCard(
     game: GameEntry,
     onClick: () -> Unit,
     onEvent: (GamesLauncherUiEvent) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hapticFeedbackEnabled: Boolean = true
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val isDark = isSystemInDarkTheme()
     val adaptivePrimary = ColorExtractor.getAdaptiveColor(game.getPrimaryColor(), isDark)
     val adaptiveTertiary = ColorExtractor.getAdaptiveColor(game.getTertiaryColor(), isDark)
@@ -87,8 +91,18 @@ fun GameGridCard(
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.medium)
             .combinedClickable(
-                onClick = onClick,
-                onLongClick = { showMenu = true }
+                onClick = {
+                    if (hapticFeedbackEnabled) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                    onClick()
+                },
+                onLongClick = {
+                    if (hapticFeedbackEnabled) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                    showMenu = true
+                }
             ),
         accentColor = if (game.isFavorite) adaptivePrimary else adaptiveTertiary,
         borderWidth = if (game.isFavorite) 2.dp else 1.dp

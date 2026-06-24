@@ -9,10 +9,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import off.kys.openarcade.data.local.ArcadePreferences
 import off.kys.openarcade.domain.usecase.GetAnalyticsDataUseCase
 
 class AnalyticsViewModel(
-    getAnalyticsDataUseCase: GetAnalyticsDataUseCase
+    getAnalyticsDataUseCase: GetAnalyticsDataUseCase,
+    private val prefs: ArcadePreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AnalyticsUiState())
@@ -29,6 +31,11 @@ class AnalyticsViewModel(
         viewModelScope.launch {
             analyticsData.collect { data ->
                 _uiState.update { it.copy(isLoading = data == null, data = data) }
+            }
+        }
+        viewModelScope.launch {
+            prefs.showScrollbar.collect { show ->
+                _uiState.update { it.copy(showScrollbar = show) }
             }
         }
     }

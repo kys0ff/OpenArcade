@@ -43,6 +43,7 @@
     <string name="game_detail_icon_desc">%1$s icon</string>
     <string name="game_detail_play">Play</string>
     <string name="game_detail_not_installed">Not Installed</string>
+    <string name="game_detail_search_play_store">Search in Play Store</string>
     <string name="game_detail_tags_button">Tags</string>
     <string name="game_detail_section_details">Details</string>
     <string name="game_detail_label_categories">Categories</string>

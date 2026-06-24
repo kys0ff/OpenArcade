@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -32,6 +35,7 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import off.kys.openarcade.domain.model.LauncherSection
 import off.kys.openarcade.ui.app_picker.AppPickerScreen
+import off.kys.openarcade.ui.components.ArcadeGridScrollbar
 import off.kys.openarcade.ui.detail.GameDetailScreen
 import off.kys.openarcade.ui.launcher.components.AnalyticsSection
 import off.kys.openarcade.ui.launcher.components.EmptyGamesState
@@ -45,11 +49,12 @@ import off.kys.openarcade.ui.launcher.components.SectionEditBottomSheet
 import off.kys.openarcade.ui.launcher.components.SystemStatusSection
 import off.kys.openarcade.ui.launcher.components.UsagePermissionCard
 import off.kys.openarcade.ui.main.MainActivity
+import off.kys.openarcade.ui.settings.SettingsScreen
 import org.koin.androidx.compose.koinViewModel
 
 class GamesLauncherScreen : Screen {
 
-    @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
@@ -59,6 +64,7 @@ class GamesLauncherScreen : Screen {
         )
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+        val gridState = rememberLazyGridState()
         var showSectionEdit by remember { mutableStateOf(false) }
 
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
@@ -79,7 +85,8 @@ class GamesLauncherScreen : Screen {
         Scaffold(containerColor = MaterialTheme.colorScheme.background) { innerPadding ->
             Box(modifier = Modifier.fillMaxSize()) {
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
+                    state = gridState,
+                    columns = GridCells.Fixed(uiState.gridColumns.count),
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         top = 0.dp,
@@ -101,7 +108,7 @@ class GamesLauncherScreen : Screen {
                             ) { hasGames ->
                                 if (hasGames) {
                                     HeroBannerPager(
-                                        installedGames = uiState.filteredGames,
+                                        installedGames = uiState.filteredGames.filter { it.isInstalled },
                                         onInspectGame = { pkg ->
                                             viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
                                             navigator.push(GameDetailScreen(pkg))
@@ -121,7 +128,7 @@ class GamesLauncherScreen : Screen {
                                 onFilterSelected = { filter ->
                                     viewModel.onEvent(GamesLauncherUiEvent.FilterSelected(filter))
                                 },
-                                onSettingsClick = { /* TODO: Implement on settings click */ },
+                                onSettingsClick = { navigator.push(SettingsScreen()) },
                                 onSectionsEdit = { showSectionEdit = true }
                             )
                         }
@@ -165,7 +172,8 @@ class GamesLauncherScreen : Screen {
                                     onGameClick = { pkg ->
                                         viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
                                         navigator.push(GameDetailScreen(pkg))
-                                    }
+                                    },
+                                    hapticFeedbackEnabled = uiState.hapticFeedback
                                 )
                             }
                         }
@@ -179,7 +187,8 @@ class GamesLauncherScreen : Screen {
                                     onGameClick = { pkg ->
                                         viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
                                         navigator.push(GameDetailScreen(pkg))
-                                    }
+                                    },
+                                    hapticFeedbackEnabled = uiState.hapticFeedback
                                 )
                             }
                         }
@@ -210,9 +219,20 @@ class GamesLauncherScreen : Screen {
                                 navigator.push(GameDetailScreen(game.packageName))
                             },
                             onEvent = { viewModel.onEvent(it) },
-                            modifier = Modifier.animateItem()
+                            modifier = Modifier.animateItem(),
+                            hapticFeedbackEnabled = uiState.hapticFeedback
                         )
                     }
+                }
+
+                if (uiState.showScrollbar) {
+                    ArcadeGridScrollbar(
+                        gridState = gridState,
+                        modifier = Modifier
+                            .align(androidx.compose.ui.Alignment.CenterEnd)
+                            .fillMaxSize()
+                            .padding(end = 16.dp)
+                    )
                 }
             }
         }

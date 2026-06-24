@@ -14,14 +14,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import off.kys.openarcade.ui.components.ArcadeDialog
-import off.kys.openarcade.ui.components.ArcadeDialogButton
-import off.kys.openarcade.ui.components.ArcadeDialogDefaults.ButtonRole
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -33,6 +28,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import off.kys.openarcade.R
+import off.kys.openarcade.ui.components.ArcadeDialog
+import off.kys.openarcade.ui.components.ArcadeDialogButton
+import off.kys.openarcade.ui.components.ArcadeDialogDefaults.ButtonRole
+import off.kys.openarcade.ui.components.ArcadeTextField
 import off.kys.openarcade.ui.components.SectionHeader
 import off.kys.openarcade.util.ColorExtractor
 
@@ -91,28 +90,16 @@ fun GameCategoryDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                OutlinedTextField(
+                ArcadeTextField(
                     value = newCategoryDraft,
                     onValueChange = onUpdateNewCategoryDraft,
-                    label = { Text(stringResource(R.string.game_detail_new_tag_label)) },
+                    label = stringResource(R.string.game_detail_new_tag_label),
                     singleLine = true,
-                    shape = MaterialTheme.shapes.large,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = adaptiveAccentColor,
-                        focusedLabelColor = adaptiveAccentColor,
-                        cursorColor = adaptiveAccentColor
-                    ),
-                    trailingIcon = {
-                        IconButton(
-                            onClick = { onAddCategory(newCategoryDraft) },
-                            enabled = newCategoryDraft.isNotBlank()
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.round_add_24),
-                                contentDescription = stringResource(R.string.game_detail_add_tag_desc),
-                                tint = if (newCategoryDraft.isNotBlank()) adaptiveAccentColor else MaterialTheme.colorScheme.outline
-                            )
+                    trailingIcon = painterResource(R.drawable.round_add_24),
+                    onTrailingClick = {
+                        if (newCategoryDraft.isNotBlank()) {
+                            onAddCategory(newCategoryDraft)
                         }
                     }
                 )

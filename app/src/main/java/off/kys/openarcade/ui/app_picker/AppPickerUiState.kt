@@ -6,7 +6,9 @@ data class AppPickerUiState(
     val searchQuery: String = "",
     val selectedPackages: Set<String> = emptySet(),
     val isLoading: Boolean = false,
-    val isDone: Boolean = false
+    val isDone: Boolean = false,
+    val showScrollbar: Boolean = true,
+    val hapticFeedback: Boolean = true
 ) {
     val filteredApps: List<AppInfo>
         get() = apps.filter { app ->
