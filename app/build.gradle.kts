@@ -30,6 +30,18 @@ android {
             versionNameSuffix = "-debug"
         }
     }
+
+    flavorDimensions += "dist"
+    productFlavors {
+        create("github") {
+            dimension = "dist"
+            versionNameSuffix = "-github"
+        }
+        create("fdroid") {
+            dimension = "dist"
+            versionNameSuffix = "-fdroid"
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
