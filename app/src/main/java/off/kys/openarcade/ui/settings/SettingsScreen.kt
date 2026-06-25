@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,11 +61,13 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import off.kys.openarcade.BuildConfig
 import off.kys.openarcade.R
 import off.kys.openarcade.domain.model.LauncherSection
 import off.kys.openarcade.ui.components.ArcadeToggle
 import off.kys.openarcade.ui.components.ScrollbarWidth
 import off.kys.openarcade.ui.components.SectionHeader
+import off.kys.openarcade.ui.license.LicensesScreen
 import off.kys.openarcade.ui.theme.OpenArcadeTheme
 import org.koin.androidx.compose.koinViewModel
 
@@ -81,6 +84,7 @@ class SettingsScreen : Screen {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        val uriHandler = LocalUriHandler.current
         val viewModel: SettingsViewModel = koinViewModel()
         val state by viewModel.state.collectAsState()
         val listState = rememberLazyListState()
@@ -161,7 +165,13 @@ class SettingsScreen : Screen {
                                 subtitle = "Hide status & navigation bars while in launcher",
                                 checked = state.immersiveMode,
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onCheckedChange = { viewModel.onEvent(SettingsUiEvent.ToggleImmersiveMode(it)) }
+                                onCheckedChange = {
+                                    viewModel.onEvent(
+                                        SettingsUiEvent.ToggleImmersiveMode(
+                                            it
+                                        )
+                                    )
+                                }
                             )
                             SettingsGroupDivider()
                             ToggleSettingItem(
@@ -170,7 +180,13 @@ class SettingsScreen : Screen {
                                 subtitle = "Prevent screen from sleeping in launcher",
                                 checked = state.keepScreenOn,
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onCheckedChange = { viewModel.onEvent(SettingsUiEvent.ToggleKeepScreenOn(it)) }
+                                onCheckedChange = {
+                                    viewModel.onEvent(
+                                        SettingsUiEvent.ToggleKeepScreenOn(
+                                            it
+                                        )
+                                    )
+                                }
                             )
                             SettingsGroupDivider()
                             ToggleSettingItem(
@@ -179,7 +195,13 @@ class SettingsScreen : Screen {
                                 subtitle = "Arcade-styled gradient scrollbar on lists",
                                 checked = state.showScrollbar,
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onCheckedChange = { viewModel.onEvent(SettingsUiEvent.ToggleShowScrollbar(it)) }
+                                onCheckedChange = {
+                                    viewModel.onEvent(
+                                        SettingsUiEvent.ToggleShowScrollbar(
+                                            it
+                                        )
+                                    )
+                                }
                             )
                         }
                     }
@@ -195,7 +217,13 @@ class SettingsScreen : Screen {
                             OrientationSettingItem(
                                 selected = state.screenOrientation,
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onSelect = { viewModel.onEvent(SettingsUiEvent.SetScreenOrientation(it)) }
+                                onSelect = {
+                                    viewModel.onEvent(
+                                        SettingsUiEvent.SetScreenOrientation(
+                                            it
+                                        )
+                                    )
+                                }
                             )
                         }
                     }
@@ -230,7 +258,14 @@ class SettingsScreen : Screen {
                                 subtitle = "Show pinned games at the top",
                                 checked = state.showFavoritesSection,
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onCheckedChange = { viewModel.onEvent(SettingsUiEvent.ToggleSection(LauncherSection.FAVORITES, it)) }
+                                onCheckedChange = {
+                                    viewModel.onEvent(
+                                        SettingsUiEvent.ToggleSection(
+                                            LauncherSection.FAVORITES,
+                                            it
+                                        )
+                                    )
+                                }
                             )
                             SettingsGroupDivider()
                             ToggleSettingItem(
@@ -239,7 +274,14 @@ class SettingsScreen : Screen {
                                 subtitle = "Show play-time charts and stats",
                                 checked = state.showAnalyticsSection,
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onCheckedChange = { viewModel.onEvent(SettingsUiEvent.ToggleSection(LauncherSection.ANALYTICS, it)) }
+                                onCheckedChange = {
+                                    viewModel.onEvent(
+                                        SettingsUiEvent.ToggleSection(
+                                            LauncherSection.ANALYTICS,
+                                            it
+                                        )
+                                    )
+                                }
                             )
                             SettingsGroupDivider()
                             ToggleSettingItem(
@@ -248,7 +290,14 @@ class SettingsScreen : Screen {
                                 subtitle = "Show recently played games",
                                 checked = state.showRecentSection,
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onCheckedChange = { viewModel.onEvent(SettingsUiEvent.ToggleSection(LauncherSection.RECENT_ACTIVITY, it)) }
+                                onCheckedChange = {
+                                    viewModel.onEvent(
+                                        SettingsUiEvent.ToggleSection(
+                                            LauncherSection.RECENT_ACTIVITY,
+                                            it
+                                        )
+                                    )
+                                }
                             )
                             SettingsGroupDivider()
                             ToggleSettingItem(
@@ -257,7 +306,14 @@ class SettingsScreen : Screen {
                                 subtitle = "Show battery, storage and RAM usage",
                                 checked = state.showSystemStatus,
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onCheckedChange = { viewModel.onEvent(SettingsUiEvent.ToggleSection(LauncherSection.SYSTEM_STATUS, it)) }
+                                onCheckedChange = {
+                                    viewModel.onEvent(
+                                        SettingsUiEvent.ToggleSection(
+                                            LauncherSection.SYSTEM_STATUS,
+                                            it
+                                        )
+                                    )
+                                }
                             )
                         }
                     }
@@ -276,7 +332,13 @@ class SettingsScreen : Screen {
                                 subtitle = "Vibrate on button presses and game launch",
                                 checked = state.hapticFeedback,
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onCheckedChange = { viewModel.onEvent(SettingsUiEvent.ToggleHapticFeedback(it)) }
+                                onCheckedChange = {
+                                    viewModel.onEvent(
+                                        SettingsUiEvent.ToggleHapticFeedback(
+                                            it
+                                        )
+                                    )
+                                }
                             )
                             SettingsGroupDivider()
                             ToggleSettingItem(
@@ -285,7 +347,13 @@ class SettingsScreen : Screen {
                                 subtitle = "Animate app icon when launching a game",
                                 checked = state.launchAnimation,
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onCheckedChange = { viewModel.onEvent(SettingsUiEvent.ToggleLaunchAnimation(it)) }
+                                onCheckedChange = {
+                                    viewModel.onEvent(
+                                        SettingsUiEvent.ToggleLaunchAnimation(
+                                            it
+                                        )
+                                    )
+                                }
                             )
                             SettingsGroupDivider()
                             ToggleSettingItem(
@@ -294,7 +362,13 @@ class SettingsScreen : Screen {
                                 subtitle = "Simplify UI transitions for performance",
                                 checked = state.reduceAnimations,
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onCheckedChange = { viewModel.onEvent(SettingsUiEvent.ToggleReduceAnimations(it)) }
+                                onCheckedChange = {
+                                    viewModel.onEvent(
+                                        SettingsUiEvent.ToggleReduceAnimations(
+                                            it
+                                        )
+                                    )
+                                }
                             )
                         }
                     }
@@ -309,9 +383,9 @@ class SettingsScreen : Screen {
                             NavigationSettingItem(
                                 icon = painterResource(R.drawable.round_sports_esports_24),
                                 title = "OpenArcade",
-                                subtitle = "Version 1.0.0 · Built with ♥",
+                                subtitle = "Version ${BuildConfig.VERSION_NAME} · Built with ♥",
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onClick = {}
+                                onClick = { uriHandler.openUri("https://github.com/kys0ff/OpenArcade") }
                             )
                             SettingsGroupDivider()
                             NavigationSettingItem(
@@ -319,7 +393,7 @@ class SettingsScreen : Screen {
                                 title = "Licenses",
                                 subtitle = "Open source libraries used in this app",
                                 hapticFeedbackEnabled = state.hapticFeedback,
-                                onClick = {}
+                                onClick = { navigator += LicensesScreen() }
                             )
                             SettingsGroupDivider()
                             NavigationSettingItem(
