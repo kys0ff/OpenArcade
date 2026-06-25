@@ -135,7 +135,6 @@ class LicensesScreen : Screen {
                     modifier = Modifier.fillMaxSize()
                 ) {
 
-                    // ── Search + count banner ─────────────────────────────────
                     item {
                         ArcadeSearchField(
                             value = searchQuery,
@@ -148,7 +147,6 @@ class LicensesScreen : Screen {
                         Spacer(Modifier.height(16.dp))
                     }
 
-                    // ── Category accordion sections ───────────────────────────
                     filtered.entries.forEach { (category, libs) ->
                         item(key = category.name) {
                             CategoryAccordion(
@@ -165,7 +163,6 @@ class LicensesScreen : Screen {
                     }
                 }
 
-                // Scrollbar overlay
                 ArcadeLicenseScrollbar(
                     listState = listState,
                     modifier = Modifier
