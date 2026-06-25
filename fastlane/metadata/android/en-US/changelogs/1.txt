@@ -1,0 +1,5 @@
+Initial release of OpenArcade!
+- Smooth Arcade interface
+- Game scanning and management
+- Fast and responsive performance
+- 100% Open Source

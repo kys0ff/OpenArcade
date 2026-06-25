@@ -1,0 +1,9 @@
+OpenArcade is a modern, open-source game arcade application for Android.
+
+Designed with simplicity and performance in mind, it provides a unified interface to discover, manage, and play your favorite games. Built using Jetpack Compose, it offers a beautiful and intuitive user experience.
+
+Features:
+- Seamless game discovery and management.
+- Beautiful Arcade user interface.
+- Open-source and privacy-focused.
+- Fast and lightweight.
