@@ -8,7 +8,7 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.createBitmap
 import androidx.palette.graphics.Palette
 
-object ColorExtractor {
+class ColorExtractor {
     fun extractPrimaryColor(drawable: Drawable?): Color {
         if (drawable == null) return Color(0xFF2A2A2A)
         

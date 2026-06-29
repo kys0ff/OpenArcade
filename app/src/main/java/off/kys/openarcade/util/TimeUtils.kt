@@ -5,8 +5,8 @@ import android.text.format.DateUtils
 import off.kys.openarcade.R
 import java.util.concurrent.TimeUnit
 
-object TimeUtils {
-    fun formatLastPlayed(context: Context, lastPlayed: Long): String {
+class TimeUtils(private val context: Context) {
+    fun formatLastPlayed(lastPlayed: Long): String {
         if (lastPlayed == 0L) return context.getString(R.string.never_played)
         return DateUtils.getRelativeTimeSpanString(
             lastPlayed,
@@ -15,7 +15,7 @@ object TimeUtils {
         ).toString()
     }
 
-    fun formatTotalPlayTime(context: Context, totalPlayTime: Long): String {
+    fun formatTotalPlayTime(totalPlayTime: Long): String {
         if (totalPlayTime == 0L) return context.getString(R.string.no_play_time)
         
         val hours = TimeUnit.MILLISECONDS.toHours(totalPlayTime)

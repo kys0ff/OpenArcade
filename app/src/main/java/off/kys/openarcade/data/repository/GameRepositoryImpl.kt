@@ -17,16 +17,17 @@ import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.model.PlayTimePoint
 import off.kys.openarcade.domain.model.TopGame
 import off.kys.openarcade.domain.repository.GameRepository
-import off.kys.openarcade.util.ColorExtractor
-import off.kys.openarcade.util.GameScanner
-import off.kys.openarcade.util.IconManager
+import off.kys.openarcade.domain.repository.MediaRepository
+import off.kys.openarcade.domain.repository.SystemRepository
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
 class GameRepositoryImpl(
     private val context: Context,
-    private val gameDao: GameDao
+    private val gameDao: GameDao,
+    private val mediaRepository: MediaRepository,
+    private val systemRepository: SystemRepository
 ) : GameRepository {
 
     override fun getGames(): Flow<List<GameEntry>> {
@@ -41,7 +42,7 @@ class GameRepositoryImpl(
         val existingGames = gameDao.getAllGamesSync()
         val manuallyAdded = existingGames.filter { it.isManuallyAdded }.map { it.packageName }
         
-        val scannedGames = GameScanner.fetchInstalledGames(context, manuallyAdded)
+        val scannedGames = systemRepository.fetchInstalledGames(manuallyAdded)
 
         // Fetch usage stats
         val stats = getUsageStats()
@@ -57,7 +58,7 @@ class GameRepositoryImpl(
             }
 
             val cachedIconPath = if (existing == null || existing.lastAppUpdateTime != scanned.lastAppUpdateTime || existing.cachedIconPath == null) {
-                icon?.let { IconManager.saveExtractedIcon(context, scanned.packageName, it) }
+                icon?.let { mediaRepository.saveExtractedIcon(scanned.packageName, it) }
             } else {
                 existing.cachedIconPath
             }
@@ -65,7 +66,7 @@ class GameRepositoryImpl(
             scanned.copy(
                 category = if (existing == null || existing.category == GameCategory.UNDEFINED) scanned.category else existing.category,
                 customCategories = existing?.customCategories ?: emptyList(),
-                primaryColorArgb = ColorExtractor.extractPrimaryColor(icon).toArgb(),
+                primaryColorArgb = mediaRepository.extractPrimaryColor(icon).toArgb(),
                 lastPlayed = usage?.lastTimeUsed ?: 0L,
                 totalPlayTime = usage?.totalTimeInForeground ?: 0L,
                 isFavorite = existing?.isFavorite ?: false,
@@ -125,7 +126,7 @@ class GameRepositoryImpl(
 
     override suspend fun updateCustomIconPath(packageName: String, customIconPath: String?) = withContext(Dispatchers.IO) {
         val finalPath = if (customIconPath?.startsWith("content://") == true) {
-            IconManager.saveCustomIcon(context, packageName, customIconPath.toUri())
+            mediaRepository.saveCustomIcon(packageName, customIconPath.toUri())
         } else {
             customIconPath
         }

@@ -4,14 +4,13 @@ import androidx.room.Room
 import off.kys.openarcade.data.local.AppDatabase
 import off.kys.openarcade.data.local.ArcadePreferences
 import off.kys.openarcade.data.repository.GameRepositoryImpl
+import off.kys.openarcade.data.repository.MediaRepositoryImpl
+import off.kys.openarcade.data.repository.SystemRepositoryImpl
 import off.kys.openarcade.domain.repository.GameRepository
-import off.kys.openarcade.domain.usecase.GetAnalyticsDataUseCase
-import off.kys.openarcade.domain.usecase.GetGameByPackageUseCase
-import off.kys.openarcade.domain.usecase.GetGamesUseCase
-import off.kys.openarcade.domain.usecase.RefreshAllGameStatsUseCase
-import off.kys.openarcade.domain.usecase.RefreshGameStatsUseCase
-import off.kys.openarcade.domain.usecase.RefreshGamesUseCase
-import off.kys.openarcade.domain.usecase.UpdateGameCategoryUseCase
+import off.kys.openarcade.domain.repository.MediaRepository
+import off.kys.openarcade.domain.repository.SystemRepository
+import off.kys.openarcade.domain.usecase.*
+import off.kys.openarcade.util.*
 import off.kys.openarcade.ui.analytics.AnalyticsViewModel
 import off.kys.openarcade.ui.app_picker.AppPickerViewModel
 import off.kys.openarcade.ui.detail.GameDetailViewModel
@@ -36,7 +35,15 @@ val appModule = module {
 
     single { ArcadePreferences(androidContext()) }
 
-    single<GameRepository> { GameRepositoryImpl(androidContext(), get()) }
+    single { IconManager(androidContext()) }
+    single { ColorExtractor() }
+    single { GameScanner(androidContext()) }
+    single { TimeUtils(androidContext()) }
+
+    single<MediaRepository> { MediaRepositoryImpl(get(), get()) }
+    single<SystemRepository> { SystemRepositoryImpl(get()) }
+
+    single<GameRepository> { GameRepositoryImpl(androidContext(), get(), get(), get()) }
 
     factory { GetGamesUseCase(get()) }
     factory { RefreshGamesUseCase(get()) }

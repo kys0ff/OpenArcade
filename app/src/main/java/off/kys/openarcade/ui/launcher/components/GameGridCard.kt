@@ -42,7 +42,8 @@ import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.ui.components.ArcadeCard
 import off.kys.openarcade.ui.components.ArcadeGameIcon
 import off.kys.openarcade.ui.launcher.GamesLauncherUiEvent
-import off.kys.openarcade.util.ColorExtractor
+import off.kys.openarcade.domain.repository.MediaRepository
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -51,13 +52,14 @@ fun GameGridCard(
     onClick: () -> Unit,
     onEvent: (GamesLauncherUiEvent) -> Unit,
     modifier: Modifier = Modifier,
-    hapticFeedbackEnabled: Boolean = true
+    hapticFeedbackEnabled: Boolean = true,
+    mediaRepository: MediaRepository = koinInject()
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val isDark = isSystemInDarkTheme()
-    val adaptivePrimary = ColorExtractor.getAdaptiveColor(game.getPrimaryColor(), isDark)
-    val adaptiveTertiary = ColorExtractor.getAdaptiveColor(game.getTertiaryColor(), isDark)
+    val adaptivePrimary = mediaRepository.getAdaptiveColor(game.getPrimaryColor(), isDark)
+    val adaptiveTertiary = mediaRepository.getAdaptiveColor(game.getTertiaryColor(), isDark)
 
     var showMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }

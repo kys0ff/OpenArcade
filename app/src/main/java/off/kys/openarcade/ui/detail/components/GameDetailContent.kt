@@ -37,7 +37,8 @@ import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.ui.components.ArcadeScrollStateScrollbar
 import off.kys.openarcade.ui.detail.GameDetailUiEvent
 import off.kys.openarcade.ui.detail.GameDetailUiState
-import off.kys.openarcade.util.ColorExtractor
+import off.kys.openarcade.domain.repository.MediaRepository
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,17 +46,18 @@ fun GameDetailContent(
     uiState: GameDetailUiState,
     currentGame: GameEntry,
     navigator: Navigator,
-    onEvent: (GameDetailUiEvent) -> Unit
+    onEvent: (GameDetailUiEvent) -> Unit,
+    mediaRepository: MediaRepository = koinInject()
 ) {
     val isDark = isSystemInDarkTheme()
     val dominantColor = remember(currentGame.primaryColorArgb, isDark) {
-        ColorExtractor.getAdaptiveColor(currentGame.getPrimaryColor(), isDark)
+        mediaRepository.getAdaptiveColor(currentGame.getPrimaryColor(), isDark)
     }
     val secondaryColor = remember(currentGame.secondaryColorArgb, isDark) {
-        ColorExtractor.getAdaptiveColor(currentGame.getSecondaryColor(), isDark)
+        mediaRepository.getAdaptiveColor(currentGame.getSecondaryColor(), isDark)
     }
     val tertiaryColor = remember(currentGame.tertiaryColorArgb, isDark) {
-        ColorExtractor.getAdaptiveColor(currentGame.getTertiaryColor(), isDark)
+        mediaRepository.getAdaptiveColor(currentGame.getTertiaryColor(), isDark)
     }
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()

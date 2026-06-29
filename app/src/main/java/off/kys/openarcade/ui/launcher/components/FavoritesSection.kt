@@ -22,7 +22,8 @@ import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.ui.components.ArcadeCard
 import off.kys.openarcade.ui.components.ArcadeGameIcon
 import off.kys.openarcade.ui.components.SectionHeader
-import off.kys.openarcade.util.ColorExtractor
+import off.kys.openarcade.domain.repository.MediaRepository
+import org.koin.compose.koinInject
 
 @Composable
 fun FavoritesSection(
@@ -59,12 +60,13 @@ fun FavoritesSection(
 private fun FavoriteGameCard(
     game: GameEntry,
     onClick: () -> Unit,
-    hapticFeedbackEnabled: Boolean = true
+    hapticFeedbackEnabled: Boolean = true,
+    mediaRepository: MediaRepository = koinInject()
 ) {
     val haptic = LocalHapticFeedback.current
     val isDark = isSystemInDarkTheme()
-    val adaptivePrimary = ColorExtractor.getAdaptiveColor(game.getPrimaryColor(), isDark)
-    val adaptiveTertiary = ColorExtractor.getAdaptiveColor(game.getTertiaryColor(), isDark)
+    val adaptivePrimary = mediaRepository.getAdaptiveColor(game.getPrimaryColor(), isDark)
+    val adaptiveTertiary = mediaRepository.getAdaptiveColor(game.getTertiaryColor(), isDark)
 
     ArcadeCard(
         onClick = {

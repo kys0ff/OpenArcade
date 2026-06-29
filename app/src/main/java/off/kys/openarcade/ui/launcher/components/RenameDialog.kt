@@ -17,7 +17,8 @@ import off.kys.openarcade.ui.components.ArcadeDialog
 import off.kys.openarcade.ui.components.ArcadeDialogButton
 import off.kys.openarcade.ui.components.ArcadeDialogDefaults.ButtonRole
 import off.kys.openarcade.ui.components.ArcadeTextField
-import off.kys.openarcade.util.ColorExtractor
+import off.kys.openarcade.domain.repository.MediaRepository
+import org.koin.compose.koinInject
 
 @Composable
 fun RenameDialog(
@@ -25,12 +26,13 @@ fun RenameDialog(
     accentColor: Color,
     onConfirm: (String) -> Unit,
     onRestore: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    mediaRepository: MediaRepository = koinInject()
 ) {
     var title by remember { mutableStateOf(initialTitle) }
     val isDark = isSystemInDarkTheme()
     val adaptiveAccentColor = remember(accentColor, isDark) {
-        ColorExtractor.getAdaptiveColor(accentColor, isDark)
+        mediaRepository.getAdaptiveColor(accentColor, isDark)
     }
 
     MaterialTheme(

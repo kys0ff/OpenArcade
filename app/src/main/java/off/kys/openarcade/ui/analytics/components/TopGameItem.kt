@@ -28,18 +28,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import off.kys.openarcade.domain.model.TopGame
+import off.kys.openarcade.domain.repository.MediaRepository
 import off.kys.openarcade.ui.components.ArcadeCard
-import off.kys.openarcade.util.ColorExtractor
+import org.koin.compose.koinInject
 
 @Composable
 fun TopGameItem(
     game: TopGame,
     maxPlayTime: Long,
     isDark: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    mediaRepository: MediaRepository = koinInject()
 ) {
     val gameColor = remember(game.primaryColorArgb, isDark) {
-        ColorExtractor.getAdaptiveColor(Color(game.primaryColorArgb), isDark)
+        mediaRepository.getAdaptiveColor(Color(game.primaryColorArgb), isDark)
     }
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
 

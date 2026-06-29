@@ -24,6 +24,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import off.kys.openarcade.R
+import off.kys.openarcade.domain.repository.MediaRepository
 import off.kys.openarcade.ui.analytics.components.CategoryDistributionSection
 import off.kys.openarcade.ui.analytics.components.PlayTimeTrendSection
 import off.kys.openarcade.ui.analytics.components.TopGameItem
@@ -32,8 +33,8 @@ import off.kys.openarcade.ui.components.ArcadeScrollbar
 import off.kys.openarcade.ui.components.LoadingScreen
 import off.kys.openarcade.ui.components.SectionHeader
 import off.kys.openarcade.ui.components.getDynamicColors
-import off.kys.openarcade.util.ColorExtractor
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 class AnalyticsScreen : Screen {
 
@@ -42,6 +43,7 @@ class AnalyticsScreen : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val viewModel: AnalyticsViewModel = koinViewModel()
+        val mediaRepository: MediaRepository = koinInject()
         val uiState by viewModel.uiState.collectAsState()
         val isDark = isSystemInDarkTheme()
         val colorScheme = MaterialTheme.colorScheme
@@ -77,7 +79,7 @@ class AnalyticsScreen : Screen {
                             }
                         }
                         val barColor = remember(colorScheme.primary, isDark) {
-                            ColorExtractor.getAdaptiveColor(colorScheme.primary, isDark)
+                            mediaRepository.getAdaptiveColor(colorScheme.primary, isDark)
                         }
                         val donutColors = getDynamicColors()
                         val maxPlayTime =

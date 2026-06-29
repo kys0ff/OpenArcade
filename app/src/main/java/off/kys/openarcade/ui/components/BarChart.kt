@@ -26,20 +26,23 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import off.kys.openarcade.domain.model.PlayTimePoint
-import off.kys.openarcade.util.ColorExtractor
+import off.kys.openarcade.domain.repository.MediaRepository
+import org.koin.compose.koinInject
 
 @Composable
 fun BarChart(
     data: List<PlayTimePoint>,
     modifier: Modifier = Modifier,
-    barColor: Color = ColorExtractor.getAdaptiveColor(
-        MaterialTheme.colorScheme.primary,
-        isSystemInDarkTheme()
-    ),
+    mediaRepository: MediaRepository = koinInject(),
+    barColor: Color? = null,
     labelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
     val isDark = isSystemInDarkTheme()
-    val barGradientEnd = ColorExtractor.getAdaptiveColor(
+    val finalBarColor = barColor ?: mediaRepository.getAdaptiveColor(
+        MaterialTheme.colorScheme.primary,
+        isDark
+    )
+    val barGradientEnd = mediaRepository.getAdaptiveColor(
         MaterialTheme.colorScheme.tertiary, isDark
     )
     val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
@@ -90,7 +93,7 @@ fun BarChart(
                     setShadowLayer(
                         barW * 0.6f,
                         0f, 4.dp.toPx(),
-                        barColor.copy(alpha = 0.35f).toArgb()
+                        finalBarColor.copy(alpha = 0.35f).toArgb()
                     )
                 }
                 canvas.nativeCanvas.drawRoundRect(
@@ -103,7 +106,7 @@ fun BarChart(
             drawRoundRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        barColor.copy(alpha = 0.95f),
+                        finalBarColor.copy(alpha = 0.95f),
                         barGradientEnd.copy(alpha = 0.55f)
                     ),
                     startY = y,
@@ -116,7 +119,7 @@ fun BarChart(
 
             if (barH > 8.dp.toPx()) {
                 drawRoundRect(
-                    color = barColor.copy(alpha = 0.90f),
+                    color = finalBarColor.copy(alpha = 0.90f),
                     topLeft = Offset(x, y),
                     size = Size(barW, 4.dp.toPx()),
                     cornerRadius = radius

@@ -10,8 +10,8 @@ import androidx.palette.graphics.Palette
 import off.kys.openarcade.domain.model.GameCategory
 import off.kys.openarcade.domain.model.GameEntry
 
-object GameScanner {
-    fun fetchInstalledGames(context: Context, extraPackages: List<String> = emptyList()): List<GameEntry> {
+class GameScanner(private val context: Context) {
+    fun fetchInstalledGames(extraPackages: List<String> = emptyList()): List<GameEntry> {
         val pm = context.packageManager
         val intent = Intent(Intent.ACTION_MAIN, null).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)

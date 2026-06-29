@@ -43,14 +43,16 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import off.kys.openarcade.R
 import off.kys.openarcade.domain.model.GameEntry
-import off.kys.openarcade.util.ColorExtractor
+import off.kys.openarcade.domain.repository.MediaRepository
+import org.koin.compose.koinInject
 import kotlin.math.absoluteValue
 
 @Composable
 fun HeroBannerPager(
     modifier: Modifier = Modifier,
     installedGames: List<GameEntry>,
-    onInspectGame: (String) -> Unit
+    onInspectGame: (String) -> Unit,
+    mediaRepository: MediaRepository = koinInject()
 ) {
     val isDark = isSystemInDarkTheme()
     val pagerCount = minOf(installedGames.size, 5)
@@ -169,7 +171,7 @@ fun HeroBannerPager(
                 FloatingActionButton(
                     onClick = { onInspectGame(game.packageName) },
                     containerColor = remember(game.primaryColorArgb, isDark) {
-                        ColorExtractor.getAdaptiveColor(game.getPrimaryColor(), isDark)
+                        mediaRepository.getAdaptiveColor(game.getPrimaryColor(), isDark)
                     },
                     contentColor = game.getOnPrimaryColor(),
                     modifier = Modifier
@@ -202,7 +204,7 @@ fun HeroBannerPager(
                         val color =
                             installedGames.getOrNull(pagerState.currentPage)?.getPrimaryColor()
                                 ?: Color.White
-                        ColorExtractor.getAdaptiveColor(color, isDark)
+                        mediaRepository.getAdaptiveColor(color, isDark)
                     }
 
                     Box(
